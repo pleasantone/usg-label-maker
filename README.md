@@ -1,7 +1,11 @@
 # usg-label-maker
-Toolbox magnetic label generator in a font nearluy matching Harbor Freight's US General font.
 
-The label generator is written in [OpenSCAD](https://openscad.org) and is a remix from [Magnetic Label Maker](https://www.printables.com/model/167349-magnetic-label-maker-scad).
+Toolbox magnetic label generator in a font nearly matching Harbor
+Freight's US General font.
+
+The label generator is written in [OpenSCAD](https://openscad.org)
+and is a remix from [Magnetic Label
+Maker](https://www.printables.com/model/167349-magnetic-label-maker-scad).
 
 ## Getting the fonts
 
@@ -20,18 +24,24 @@ or commercially.
 ## Remix Improvements
 
 The improvement to this label maker (from the original) are:
-  * can produce several labels at once
-  * auto-sizes the bounding box for the labels
-  * paints the text (during preview) so it's easier to read
-  * checks to see if the label will exceed the bed-size of your printer
+
+* can produce several labels at once
+* auto-sizes the bounding box for the labels
+* paints the text (during preview) so it's easier to read
+* checks to see if the label will exceed the bed-size of your printer
 
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
+  *labels*: array of names like ["SOCKETS", "RATCHETS"]
   *font*:  font to use
   *letter_size*: 8mm default
-  *label depth*: 5mm default
-  *labels*: array of names like ["SOCKETS", "RATCHETS"]
+  *label depth*: 5mm default -- includes raised letters
+  *base_follows_letter*: false default -- experimental
+    flowing of base to follow letter outlines.
+    May produce more aesthetic results but can also look
+    strange letters with descenders (angled base) and trailing Ls
+    (opposite angle). Also very slow to render.
 
 It will only generate as many labels in the STL as will fit on the
 plate vertically, so you may have to batch your jobs (hence the
