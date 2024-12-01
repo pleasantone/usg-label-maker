@@ -1,15 +1,15 @@
 // Magnetic Label Maker by Pleasant One remixed from Josh
 // See documentation for License.
 
-labels0 = ["TESTING"];
+labels0 = ["TEST LABEL"];
 
 labels1 = ["SAE SOCKETS", "RATCHETS", "RATCHETS", "SCREWDRIVERS", "WRENCHES", "TORQUE WRENCHES", "PLIERS", "BIT SETS", "POWER TOOLS", "ELECTRICAL", "PUNCHES", "BED SIZE TEST"];
 
 labels2 = ["CHISELS", "PICKS", "TORX", "ALLEN", "JUNK", "RIVETING", "SHEARS", "MEASURING", "MISC", "PPE"];
 
-labels3 = ["MOTORCYCLE", "MARKING", "MAGNETS", "PRY BARS", "BRUSHES", "CRIMPERS"];
+labels3 = ["MOTORCYCLE", "MARKING", "MAGNETS", "PRY BARS", "BRUSHES", "CRIMPERS","SOLDERING"];
 
-labels = labels1;  // the labels we're going to print
+labels = labels0;  // the labels we're going to print
 
 
 // font should either be installed or font file should be in
@@ -95,11 +95,13 @@ module makelabel(string, y_offset) {
 // so we do things recursively
 module makelabels(labels, idx = 0) {
     offset = idx * label_y_offset;
-    if (idx < len(labels) && offset < bed_size[1] - (label_y_offset*2)) {
-        makelabel(labels[idx], offset);
-        makelabels(labels, idx + 1);
-    } else {
-        echo(str("WARNING: Not enough room to print ", labels[idx]));
+    if (idx < len(labels)) {
+        if (offset < bed_size[1] - (label_y_offset*2)) {
+            makelabel(labels[idx], offset);
+            makelabels(labels, idx + 1);
+        } else {
+            echo(str("WARNING: Not enough room to print ", labels[idx]));
+        }
     }
 }
 
