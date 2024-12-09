@@ -1,0 +1,21 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "advanced_styles": "",
+            "base_color": "black",
+            "base_follows_letters": "1",
+            "base_radius": "2",
+            "bed_size": "[255, 255]",
+            "depth": "5",
+            "font_name": "FONTSPRING DEMO \\- Avionic Wide Oblique Black",
+            "font_size": "8",
+            "font_style": "Regular",
+            "label_y_offset": "20",
+            "magnet_depth": "3.75",
+            "magnet_diameter": "8",
+            "single_magnet_width": "36",
+            "text_color": "white"
+        }
+    }
+}
