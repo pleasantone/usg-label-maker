@@ -3,13 +3,16 @@
 
 
 /* [Labels] */
-// The labels we're going to print
-labels = ["TEST LABEL", "TEST LABEL2"];
 
-label_group_a = ["SAE SOCKETS", "RATCHETS", "RATCHETS", "SCREWDRIVERS", "WRENCHES", "TORQUE WRENCHES", "PLIERS", "BIT SETS", "POWER TOOLS", "ELECTRICAL", "PUNCHES", "BED SIZE TEST"];
-label_group_b = ["CHISELS", "PICKS", "TORX", "ALLEN", "JUNK", "RIVETING", "SHEARS", "MEASURING", "MISC", "PPE"];
-label_group_c = ["MOTORCYCLE", "MARKING", "MAGNETS", "PRY BARS", "BRUSHES", "CRIMPERS","SOLDERING"];
 
+// Some examples of labels, nothing is done with these at this time
+// example_labels_a = "SAE SOCKETS|RATCHETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|PUNCHES|BED SIZE TEST";
+// example_labels_b = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
+// example_labels_c = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING";
+// example_labels_d = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT";
+
+// The labels to print, delimited by "|"
+labels = "TEST LABEL|TEST LABEL 2";
 
 /* [Font] */
 /* Avionic Wide Oblique Black is quite close to the
@@ -39,23 +42,23 @@ font_name = "FONTSPRING DEMO \\- Avionic Wide Oblique Black";
 //use <sd prostreet.ttf>
 //font_name = "sd prostreet";
 
-// Not all styles may work
+// Not all styles may work (ok to leave empty)
 font_style = ""; // [,Regular,Bold,Medium,SemiBold,Light,ExtraBold,Black,ExtraLight,Thin,Bold Italic,Italic,Light Italic,Medium Italic]
-// Additional font styles listed in order of popularity, many may not work with your selected font_family
+// Additional font styles listed in order of popularity, many may not work with your selected font_family (ok to leave empty)
 advanced_styles = ""; //[,SemiBold Italic,ExtraBold Italic,Black Italic,ExtraLight Italic,Condensed Bold,Condensed ExtraBold,Condensed Light,Condensed SemiBold,Thin Italic,Condensed ExtraLight,Condensed Medium,Condensed Thin,Condensed,Condensed Black,ExtraCondensed,SemiCondensed,ExtraCondensed Black,ExtraCondensed Bold,ExtraCondensed ExtraBold,ExtraCondensed ExtraLight,ExtraCondensed Light,ExtraCondensed Medium,ExtraCondensed SemiBold,ExtraCondensed Thin,SemiCondensed Black,SemiCondensed Bold,SemiCondensed ExtraBold,SemiCondensed ExtraLight,SemiCondensed Light,SemiCondensed Medium,SemiCondensed SemiBold,SemiCondensed Thin,Condensed Bold Italic,Condensed ExtraBold Italic,Condensed Italic,Condensed Light Italic,Condensed SemiBold Italic,Condensed ExtraLight Italic,Condensed Medium Italic,Condensed Regular,Condensed Thin Italic,Condensed Black Italic,12pt ExtraLight,12pt ExtraLight Italic,20pt Italic,20pt Regular,ExtraBlack,ExtraBlack Italic,ExtraCondensed Black Italic,ExtraCondensed Bold Italic,ExtraCondensed ExtraBold Italic,ExtraCondensed ExtraLight Italic,ExtraCondensed Italic,ExtraCondensed Light Italic,ExtraCondensed Medium Italic,ExtraCondensed SemiBold Italic,ExtraCondensed Thin Italic,SemiCondensed Black Italic,SemiCondensed Bold Italic,SemiCondensed ExtraBold Italic,SemiCondensed ExtraLight Italic,SemiCondensed Italic,SemiCondensed Light Italic,SemiCondensed Medium Italic,SemiCondensed SemiBold Italic,SemiCondensed Thin Italic]
 // font size in points
-font_size = 8.0;
+font_size = 8; // [5:32]
 
 
-/* [Base Properties] */
+/* [Base] */
 /* If true, base flows with letter shapes, but slower to render
    and can do weird stuff with the letters with descenders (Q)
    or trailing characters with reverse angles (L). It's pretty
    when it works out correctly but off by default to be safe
    for all cases. */
 
-// Experimental: base outline follows letters
-base_follows_letters = 0; // [0:Rectangle, 1:Outline letters]
+// Is the base a rectangle or does it follow the letter outline?
+base_shape = 0; // [0:Rectangle, 1:Outline letters]
 // Rounded corner radius (default 2mm, 0 for sharp corners)
 base_radius = 2.0;
 // Total depth in mm of badge and base in mm (default 5mm)
@@ -64,15 +67,15 @@ depth = 5.0;
 magnet_depth = 3.75;
 // Diameter of the magnet hole in mm
 magnet_diameter = 8.0;
-// If the piece is less than X mm, create only a single magnet hole, otherwise 3
-single_magnet_width = 36.0;
+// If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
+single_magnet_width = 36;
 
 /* [Preview colors settings (preview only, need to paint in slicer)] */
 base_color = "black";
 text_color = "white";
 
 /* [Printer and offset settings] */
-// distance between labels on plate
+// distance between labels on plate in mm
 label_y_offset = 20.0;
 // printer bed size (BambuLab A1/P1/X1 are 255x255x255)
 bed_size=[255, 255];
@@ -80,15 +83,18 @@ bed_size=[255, 255];
 /* [ Hidden ] */
 $fn = 32; // Model detail, higher is more detail and more processing
 
+
+label_group = is_string(labels) ? split("|", labels) : labels;
+
 if (font_style!="") {
     font = str(font_name, ":style=", font_style);
-    makelabels(labels, font);
+    makelabels(label_group, font);
 } else {
-    if (advanced_styles!="") {
+    if (advanced_styles != "") {
         font = str(font_name, ":style=", advanced_styles);
-        makelabels(labels, font);
+        makelabels(label_group, font);
     } else {
-        makelabels(labels, font_name);
+        makelabels(label_group, font_name);
     }
 }
 
@@ -108,7 +114,7 @@ module makelabel(string, font, y_offset = 0) {
             color(base_color) hull() { // wrap all words
                 minkowski() { // chamfer corners and flow letters
                     linear_extrude(depth/2) {
-                        if (base_follows_letters) {
+                        if (base_shape) {
                             text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
                         } else {
                             square([base_width, base_height], center=true);
@@ -143,8 +149,9 @@ module makelabel(string, font, y_offset = 0) {
     }
 }
 
-// SCAD is a functional language, so variables only get set once per function
-// so we do things recursively since iterations don't do what one would expect
+// SCAD is a functional language, so variables only get set once
+// per function, so do things recursively since iterations
+// don't' do what one would expect
 module makelabels(labels, font, idx = 0) {
     offset = idx * label_y_offset;
     if (idx < len(labels)) {
@@ -156,3 +163,18 @@ module makelabels(labels, font, idx = 0) {
         }
     }
 }
+
+// extract a substring from a string
+// string, start, end, error-return
+function substr(s, st, en, p="") =
+    (st >= en || st >= len(s))
+    ? p
+    : substr(s, st+1, en, str(p, s[st]));
+
+// split a string into an array of strings
+// delimiter, string
+function split(h, s, p=[]) = let(x = search(h, s))
+    x == []
+    ? concat(p, s)
+    : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s)))
+    split(h, r, concat(p, l));
