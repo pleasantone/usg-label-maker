@@ -83,21 +83,46 @@ bed_size=[255, 255];
 $fn = 32; // Model detail, higher is more detail and more processing
 
 label_group = is_string(labels) ? split("|", labels) : labels;
-font = font_style ? str(font_name, ":style=", advanced_styles ? advanced_styles : font_style) : font_name;
+font = font_style
+       ? str(font_name, ":style=", advanced_styles ? advanced_styles : font_style)
+       : font_name;
 
-for (idx = [0:len(label_group)]) {
-    offset = idx * label_y_offset;
-    if (idx < len(label_group)) {
-        if (offset < bed_size[1] - label_y_offset * 2) {
-            make_base(label_group[idx], font, offset);
-            make_text(label_group[idx], font, offset);
-        } else {
-            echo(str("WARNING: Not enough room to print ", label_group[idx]));
+/*
+ If we are using the development snapshot with the lazy_union enabled, and we export this as a .3MF
+ file, each "top level" creation will be its own object. This is an easy way to handle color changes.
+ Import the .3mf file into your slicer, click "Yes" when it asks to bring in multiple objects as
+ parts of one single object, and it will position each part correctly. Then go into object menu
+ and set part number two to your base color.
+ */
+
+color(base_color) make_bases(); // all the bases will export as a single object
+color(text_color) make_texts(); // all the text will export as a single object
+
+module make_bases() {
+    for (idx = [0:len(label_group)]) {
+        offset = idx * label_y_offset;
+        if (idx < len(label_group)) {
+            if (offset < bed_size[1] - label_y_offset * 2) {
+                make_base(label_group[idx], offset);
+            } else {
+                echo(str("WARNING: Not enough room to print ", label_group[idx]));
+            }
         }
     }
 }
 
-module make_base(string, font, y_offset = 0) {
+module make_texts() {
+    for (idx = [0:len(label_group)]) {
+        offset = idx * label_y_offset;
+        if (idx < len(label_group)) {
+            if (offset < bed_size[1] - label_y_offset * 2) {
+                make_text(label_group[idx], offset);
+            }
+        }
+    }
+}
+
+module make_base(string, y_offset = 0) {
     tmetrics = textmetrics(string, size = font_size, font = font, halign = "center", valign = "center", $fn=64);
     base_width = tmetrics["size"][0];
     base_height = tmetrics["size"][1];
@@ -105,119 +130,52 @@ module make_base(string, font, y_offset = 0) {
     // double-check that a single label won't be too wide
     assert(base_width+base_radius < bed_size[0]);
 
-    // move to the y-offset in case multiple labels are happening
-    translate([0, y_offset, 0]) difference() {
-        // make the base
-        color(base_color)
-        difference() {
-            hull() { // wrap all words
-                minkowski() { // chamfer corners and flow letters
-                    linear_extrude(depth/2) {
-                        if (base_shape) {
-                            text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
-                        } else {
-                            square([base_width, base_height], center=true);
-                        }
-                    }
-                    cylinder(h=1, r=base_radius);
-                }
-            }
-            // carve out center magnet hole (difference)
-            translate([0, 0, 0]) {
-                // center or only magnet hole
-                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-            };
-            // carve out two additional magnet holes if needed
-            if (base_width + base_radius > single_magnet_width) {
-                translate([-base_width/2 + 10, 0, 0]) {
-                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                };
-
-                translate([base_width/2 - 10, 0, 0]) {
-                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                };
-            }
-        }
-    }
-}
-
-module make_text(string, font, y_offset = 0) {
     translate([0, y_offset, 0])
+        // make the base
     difference() {
-        // make the raised text
-        color(text_color)
-        translate([0, 0, depth/2])
-        linear_extrude(depth/2) {
-            text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
+        hull() // wrap all words
+        minkowski() { // chamfer corners and flow letters
+            linear_extrude(depth/2) {
+                if (base_shape) {
+                    text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
+                } else {
+                    square([base_width, base_height], center=true);
+                }
+            }
+            cylinder(h=1, r=base_radius);
+        }
+        // carve out center magnet hole (difference)
+        translate([0, 0, 0])
+        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+
+        // carve out two additional magnet holes if needed
+        if (base_width + base_radius > single_magnet_width) {
+            translate([-base_width/2 + 10, 0, 0])
+            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+
+            translate([base_width/2 - 10, 0, 0])
+            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
         }
     }
 }
 
-module makelabel(string, font, y_offset = 0) {
-    tmetrics = textmetrics(string, size = font_size, font = font, halign = "center", valign = "center", $fn=64);
-
-    base_width = tmetrics["size"][0];
-    base_height = tmetrics["size"][1];
-
-    // double-check that a single label won't be too wide
-    assert(base_width+base_radius < bed_size[0]);
-
-    // move to the y-offset in case multiple labels are happening
-    translate([0, y_offset, 0]) difference() {
-//        union() {
-            // make the base
-            color(base_color)
-            difference() {
-                hull() { // wrap all words
-                    minkowski() { // chamfer corners and flow letters
-                        linear_extrude(depth/2) {
-                            if (base_shape) {
-                                text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
-                            } else {
-                                square([base_width, base_height], center=true);
-                            }
-                        }
-                        cylinder(h=1, r=base_radius);
-                    }
-                }
-                // carve out center magnet hole (difference)
-                translate([0, 0, 0]) {
-                    // center or only magnet hole
-                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                };
-                // carve out two additional magnet holes if needed
-                if (base_width + base_radius > single_magnet_width) {
-                    translate([-base_width/2 + 10, 0, 0]) {
-                        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                    };
-
-                    translate([base_width/2 - 10, 0, 0]) {
-                        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                    };
-                }
-            }
-
-            // make the raised text
-            color(text_color)
-            translate([0, 0, depth/2])
-            linear_extrude(depth/2) {
-                text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
-            }
-//        }
+module make_text(string, y_offset = 0) {
+    translate([0, y_offset, (depth/2)+1.0])
+    linear_extrude(depth/2) {
+        text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
     }
 }
 
 // extract a substring from a string
-// string, start, end, error-return
+// parameters: string, start, end, if-error-return-string
 function substr(s, st, en, p="") =
     (st >= en || st >= len(s))
     ? p
     : substr(s, st+1, en, str(p, s[st]));
 
 // split a string into an array of strings
-// delimiter, string
+// parameters: delimiter, string
 function split(h, s, p=[]) = let(x = search(h, s))
     x == []
     ? concat(p, s)
-    : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s)))
-    split(h, r, concat(p, l));
+    : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s))) split(h, r, concat(p, l));
