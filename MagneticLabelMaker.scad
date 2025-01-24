@@ -3,16 +3,15 @@
 
 
 /* [Labels] */
-
-
-// Some examples of labels, nothing is done with these at this time
-// example_labels_a = "SAE SOCKETS|RATCHETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|PUNCHES|BED SIZE TEST";
-// example_labels_b = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
-// example_labels_c = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING";
-// example_labels_d = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT";
-
 // The labels to print, delimited by "|"
 labels = "TEST LABEL|TEST LABEL 2";
+
+/* [Label examples] */
+// Some examples of labels, nothing is done with these at this time
+example_labels_a = "SAE SOCKETS|RATCHETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|PUNCHES|BED SIZE TEST";
+example_labels_b = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
+example_labels_c = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING";
+example_labels_d = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT";
 
 /* [Font] */
 /* Avionic Wide Oblique Black is quite close to the
@@ -83,18 +82,17 @@ bed_size=[255, 255];
 /* [ Hidden ] */
 $fn = 32; // Model detail, higher is more detail and more processing
 
-
 label_group = is_string(labels) ? split("|", labels) : labels;
+font = font_style ? str(font_name, ":style=", advanced_styles ? advanced_styles : font_style) : font_name;
 
-if (font_style!="") {
-    font = str(font_name, ":style=", font_style);
-    makelabels(label_group, font);
-} else {
-    if (advanced_styles != "") {
-        font = str(font_name, ":style=", advanced_styles);
-        makelabels(label_group, font);
-    } else {
-        makelabels(label_group, font_name);
+for (idx = [0:len(label_group)]) {
+    offset = idx * label_y_offset;
+    if (idx < len(label_group)) {
+        if (offset < bed_size[1] - label_y_offset * 2) {
+            makelabel(label_group[idx], font, offset);
+        } else {
+            echo(str("WARNING: Not enough room to print ", label_group[idx]));
+        }
     }
 }
 
@@ -109,58 +107,46 @@ module makelabel(string, font, y_offset = 0) {
 
     // move to the y-offset in case multiple labels are happening
     translate([0, y_offset, 0]) difference() {
-        union() {
+//        union() {
             // make the base
-            color(base_color) hull() { // wrap all words
-                minkowski() { // chamfer corners and flow letters
-                    linear_extrude(depth/2) {
-                        if (base_shape) {
-                            text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
-                        } else {
-                            square([base_width, base_height], center=true);
+            color(base_color)
+            difference() {
+                hull() { // wrap all words
+                    minkowski() { // chamfer corners and flow letters
+                        linear_extrude(depth/2) {
+                            if (base_shape) {
+                                text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
+                            } else {
+                                square([base_width, base_height], center=true);
+                            }
                         }
+                        cylinder(h=1, r=base_radius);
                     }
-                    cylinder(h=1, r=base_radius);
+                }
+                // carve out center magnet hole (difference)
+                translate([0, 0, 0]) {
+                    // center or only magnet hole
+                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                };
+                // carve out two additional magnet holes if needed
+                if (base_width + base_radius > single_magnet_width) {
+                    translate([-base_width/2 + 10, 0, 0]) {
+                        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                    };
+
+                    translate([base_width/2 - 10, 0, 0]) {
+                        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                    };
                 }
             }
 
             // make the raised text
-            color(text_color) linear_extrude(depth) {
+            color(text_color)
+            translate([0, 0, depth/2])
+            linear_extrude(depth/2) {
                 text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
             }
-        }
-
-        // carve out  magnet holes (difference)
-        translate([0, 0, 0]) {
-            // center or only magnet hole
-            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-            };
-
-            // add two additional magnet holes
-            if (base_width + base_radius > single_magnet_width) {
-                translate([-base_width/2 + 10, 0, 0]) {
-                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                };
-
-                translate([base_width/2 - 10, 0, 0]) {
-                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-                };
-            }
-    }
-}
-
-// SCAD is a functional language, so variables only get set once
-// per function, so do things recursively since iterations
-// don't' do what one would expect
-module makelabels(labels, font, idx = 0) {
-    offset = idx * label_y_offset;
-    if (idx < len(labels)) {
-        if (offset < bed_size[1] - (label_y_offset*2)) {
-            makelabel(labels[idx], font, offset);
-            makelabels(labels, font, idx + 1);
-        } else {
-            echo(str("WARNING: Not enough room to print ", labels[idx]));
-        }
+//        }
     }
 }
 
