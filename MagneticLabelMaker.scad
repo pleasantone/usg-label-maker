@@ -89,9 +89,66 @@ for (idx = [0:len(label_group)]) {
     offset = idx * label_y_offset;
     if (idx < len(label_group)) {
         if (offset < bed_size[1] - label_y_offset * 2) {
-            makelabel(label_group[idx], font, offset);
+            make_base(label_group[idx], font, offset);
+            make_text(label_group[idx], font, offset);
         } else {
             echo(str("WARNING: Not enough room to print ", label_group[idx]));
+        }
+    }
+}
+
+module make_base(string, font, y_offset = 0) {
+    tmetrics = textmetrics(string, size = font_size, font = font, halign = "center", valign = "center", $fn=64);
+    base_width = tmetrics["size"][0];
+    base_height = tmetrics["size"][1];
+
+    // double-check that a single label won't be too wide
+    assert(base_width+base_radius < bed_size[0]);
+
+    // move to the y-offset in case multiple labels are happening
+    translate([0, y_offset, 0]) difference() {
+        // make the base
+        color(base_color)
+        difference() {
+            hull() { // wrap all words
+                minkowski() { // chamfer corners and flow letters
+                    linear_extrude(depth/2) {
+                        if (base_shape) {
+                            text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
+                        } else {
+                            square([base_width, base_height], center=true);
+                        }
+                    }
+                    cylinder(h=1, r=base_radius);
+                }
+            }
+            // carve out center magnet hole (difference)
+            translate([0, 0, 0]) {
+                // center or only magnet hole
+                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+            };
+            // carve out two additional magnet holes if needed
+            if (base_width + base_radius > single_magnet_width) {
+                translate([-base_width/2 + 10, 0, 0]) {
+                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                };
+
+                translate([base_width/2 - 10, 0, 0]) {
+                    cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                };
+            }
+        }
+    }
+}
+
+module make_text(string, font, y_offset = 0) {
+    translate([0, y_offset, 0])
+    difference() {
+        // make the raised text
+        color(text_color)
+        translate([0, 0, depth/2])
+        linear_extrude(depth/2) {
+            text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
         }
     }
 }
