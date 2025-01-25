@@ -95,75 +95,67 @@ font = font_style
  and set part number two to your base color.
  */
 
-color(base_color) make_bases(); // all the bases will export as a single object
-color(text_color) make_texts(); // all the text will export as a single object
+color(base_color)
+    iterate_labels()
+        make_base(); // all the bases will export as a single object
 
-module make_bases() {
-    for (idx = [0:len(label_group)]) {
+color(text_color)
+    iterate_labels()
+        make_text(); // all the text will export as a single object
+
+module iterate_labels() {
+    for (idx = [0:len(label_group)-1]) {
         offset = idx * label_y_offset;
-        if (idx < len(label_group)) {
-            if (offset < bed_size[1] - label_y_offset * 2) {
-                make_base(label_group[idx], offset);
-            } else {
-                echo(str("WARNING: Not enough room to print ", label_group[idx]));
-            }
-        }
+        if (offset < bed_size[1] - label_y_offset * 2)
+            translate([0, offset, 0])
+                let ($string = label_group[idx])
+                    children();
+        else
+            echo(str("WARNING: Not enough room to print ", label_group[idx]));
     }
 }
 
-module make_texts() {
-    for (idx = [0:len(label_group)]) {
-        offset = idx * label_y_offset;
-        if (idx < len(label_group)) {
-            if (offset < bed_size[1] - label_y_offset * 2) {
-                make_text(label_group[idx], offset);
-            }
-        }
-    }
-}
-
-module make_base(string, y_offset = 0) {
-    tmetrics = textmetrics(string, size = font_size, font = font, halign = "center", valign = "center", $fn=64);
+module make_base(string=$string) {
+    tmetrics = textmetrics(string, size = font_size, font = font,
+                           halign = "center", valign = "center", $fn=64);
     base_width = tmetrics["size"][0];
     base_height = tmetrics["size"][1];
 
     // double-check that a single label won't be too wide
-    assert(base_width+base_radius < bed_size[0]);
+    assert(base_width + base_radius < bed_size[0]);
 
-    translate([0, y_offset, 0])
-        // make the base
+    // make the base
     difference() {
         hull() // wrap all words
-        minkowski() { // chamfer corners and flow letters
-            linear_extrude(depth/2) {
-                if (base_shape) {
-                    text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
-                } else {
-                    square([base_width, base_height], center=true);
+            minkowski() { // chamfer corners and flow letters
+                linear_extrude(depth/2) {
+                    if (base_shape)
+                        text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
+                    else
+                        square([base_width, base_height], center=true);
                 }
+                cylinder(h=1, r=base_radius);
             }
-            cylinder(h=1, r=base_radius);
-        }
+
         // carve out center magnet hole (difference)
         translate([0, 0, 0])
-        cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
 
         // carve out two additional magnet holes if needed
         if (base_width + base_radius > single_magnet_width) {
             translate([-base_width/2 + 10, 0, 0])
-            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
-
+                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
             translate([base_width/2 - 10, 0, 0])
-            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
         }
     }
 }
 
-module make_text(string, y_offset = 0) {
-    translate([0, y_offset, (depth/2)+1.0])
-    linear_extrude(depth/2) {
-        text(string, size = font_size, font = font, halign = "center", valign = "center", $fn = 64);
-    }
+module make_text(string=$string) {
+    translate([0, 0, (depth/2)+1.0])
+        linear_extrude(depth/2)
+            text(string, size = font_size, font = font,
+                 halign = "center", valign = "center", $fn = 64);
 }
 
 // extract a substring from a string
