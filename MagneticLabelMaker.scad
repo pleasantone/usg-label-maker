@@ -1,7 +1,6 @@
 // Magnetic Label Maker by Pleasant One remixed from Josh
 // See documentation for License.
 
-
 /* [Labels] */
 // The labels to print, delimited by "|"
 labels = "TEST LABEL|TEST LABEL 2";
@@ -13,10 +12,10 @@ example_labels_b = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC
 example_labels_c = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING";
 example_labels_d = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT";
 
+
 /* [Font] */
-/* Avionic Wide Oblique Black is quite close to the
-   "U.S. GENERAL" font that Harbor Freight uses, but pick your
-   favorite.
+/* Avionic Wide Oblique Black is quite close to the "U.S. GENERAL"
+   font that Harbor Freight uses, but pick your favorite.
 
    These are all close:
    https://demofont.com/avionic-sans-serif-font/
@@ -29,32 +28,29 @@ example_labels_d = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|A
    the font name as in:
 
    use <sd prostreet.ttf>
-   font_name = "sd prostreet";
-   */
+   font = "sd prostreet";
 
-//use <Avionic Font/Fontspring-DEMO-avionicqideoblique-black.otf>
+   You might need to restart OpenSCAD in order for it to recognize
+   newly installed or "used' fonts.
+*/
+
+//use <Avionic Font/Fontspring-DEMO-avionicwideoblique-black.otf>
 
 // Text font
-font_name = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; //[,FONTSPRING DEMO \\- Avionic Wide Oblique Black,Harmony OS Sans,Inter,Inter Tight,Lora,Merriweather Sans,Montserrat,Noto Emoji,Noto Sans,Noto Sans Adlam,Noto Sans Adlam Unjoined,Noto Sans Arabic,Noto Sans Arabic UI,Noto Sans Armenian,Noto Sans Balinese,Noto Sans Bamum,Noto Sans Bassa Vah,Noto Sans Bengali,Noto Sans Bengali UI,Noto Sans Canadian Aboriginal,Noto Sans Cham,Noto Sans Cherokee,Noto Sans Devanagari,Noto Sans Display,Noto Sans Ethiopic,Noto Sans Georgian,Noto Sans Gujarati,Noto Sans Gunjala Gondi,Noto Sans Gurmukhi,Noto Sans Gurmukhi UI,Noto Sans HK,Noto Sans Hanifi Rohingya,Noto Sans Hebrew,Noto Sans JP,Noto Sans Javanese,Noto Sans KR,Noto Sans Kannada,Noto Sans Kannada UI,Noto Sans Kawi,Noto Sans Kayah Li,Noto Sans Khmer,Noto Sans Khmer UI,Noto Sans Lao,Noto Sans Lao Looped,Noto Sans Lao UI,Noto Sans Lisu,Noto Sans Malayalam,Noto Sans Malayalam UI,Noto Sans Medefaidrin,Noto Sans Meetei Mayek,Noto Sans Mono,Noto Sans Myanmar,Noto Sans NKo Unjoined,Noto Sans Nag Mundari,Noto Sans New Tai Lue,Noto Sans Ol Chiki,Noto Sans Oriya,Noto Sans SC,Noto Sans Sinhala,Noto Sans Sinhala UI,Noto Sans Sora Sompeng,Noto Sans Sundanese,Noto Sans Symbols,Noto Sans Syriac,Noto Sans Syriac Eastern,Noto Sans TC,Noto Sans Tai Tham,Noto Sans Tamil,Noto Sans Tamil UI,Noto Sans Tangsa,Noto Sans Telugu,Noto Sans Telugu UI,Noto Sans Thaana,Noto Sans Thai,Noto Sans Thai UI,Noto Sans Vithkuqi,Nunito,Nunito Sans,Open Sans,Open Sans Condensed,Oswald,Playfair Display,Plus Jakarta Sans,Raleway,Roboto,Roboto Condensed,Roboto Flex,Roboto Mono,Roboto Serif,Roboto Slab,Rubik,Source Sans 3,Ubuntu Sans,Ubuntu Sans Mono,Work Sans]
+font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; // font
 
-//alternatively:
-//use <sd prostreet.ttf>
-//font_name = "sd prostreet";
-
-// Not all styles may work (ok to leave empty)
-font_style = ""; // [,Regular,Bold,Medium,SemiBold,Light,ExtraBold,Black,ExtraLight,Thin,Bold Italic,Italic,Light Italic,Medium Italic]
-// Additional font styles listed in order of popularity, many may not work with your selected font_family (ok to leave empty)
-advanced_styles = ""; //[,SemiBold Italic,ExtraBold Italic,Black Italic,ExtraLight Italic,Condensed Bold,Condensed ExtraBold,Condensed Light,Condensed SemiBold,Thin Italic,Condensed ExtraLight,Condensed Medium,Condensed Thin,Condensed,Condensed Black,ExtraCondensed,SemiCondensed,ExtraCondensed Black,ExtraCondensed Bold,ExtraCondensed ExtraBold,ExtraCondensed ExtraLight,ExtraCondensed Light,ExtraCondensed Medium,ExtraCondensed SemiBold,ExtraCondensed Thin,SemiCondensed Black,SemiCondensed Bold,SemiCondensed ExtraBold,SemiCondensed ExtraLight,SemiCondensed Light,SemiCondensed Medium,SemiCondensed SemiBold,SemiCondensed Thin,Condensed Bold Italic,Condensed ExtraBold Italic,Condensed Italic,Condensed Light Italic,Condensed SemiBold Italic,Condensed ExtraLight Italic,Condensed Medium Italic,Condensed Regular,Condensed Thin Italic,Condensed Black Italic,12pt ExtraLight,12pt ExtraLight Italic,20pt Italic,20pt Regular,ExtraBlack,ExtraBlack Italic,ExtraCondensed Black Italic,ExtraCondensed Bold Italic,ExtraCondensed ExtraBold Italic,ExtraCondensed ExtraLight Italic,ExtraCondensed Italic,ExtraCondensed Light Italic,ExtraCondensed Medium Italic,ExtraCondensed SemiBold Italic,ExtraCondensed Thin Italic,SemiCondensed Black Italic,SemiCondensed Bold Italic,SemiCondensed ExtraBold Italic,SemiCondensed ExtraLight Italic,SemiCondensed Italic,SemiCondensed Light Italic,SemiCondensed Medium Italic,SemiCondensed SemiBold Italic,SemiCondensed Thin Italic]
 // font size in points
 font_size = 8; // [5:32]
 
 
 /* [Base] */
-/* If true, base flows with letter shapes, but slower to render
+/*
+   If true, base flows with letter shapes, but slower to render
    and can do weird stuff with the letters with descenders (Q)
    or trailing characters with reverse angles (L). It's pretty
    when it works out correctly but off by default to be safe
-   for all cases. */
+   for all cases.
+*/
 
 // Is the base a rectangle or does it follow the letter outline?
 base_shape = 0; // [0:Rectangle, 1:Outline letters]
@@ -83,17 +79,16 @@ bed_size=[255, 255];
 $fn = 32; // Model detail, higher is more detail and more processing
 
 label_group = is_string(labels) ? split("|", labels) : labels;
-font = font_style
-       ? str(font_name, ":style=", advanced_styles ? advanced_styles : font_style)
-       : font_name;
 
 /*
- If we are using the development snapshot with the lazy_union enabled, and we export this as a .3MF
- file, each "top level" creation will be its own object. This is an easy way to handle color changes.
- Import the .3mf file into your slicer, click "Yes" when it asks to bring in multiple objects as
- parts of one single object, and it will position each part correctly. Then go into object menu
- and set part number two to your base color.
- */
+ If we are using the development snapshot with the lazy_union
+ enabled, and we export this as a .3MF file, each "top level"
+ creation will be its own object. This is an easy way to handle
+ color changes.  Import the .3mf file into your slicer, click "Yes"
+ when it asks to bring in multiple objects as parts of one single
+ object, and it will position each part correctly. Then go into
+ object menu and set part number two to your base color.
+*/
 
 color(base_color)
     iterate_labels()
@@ -130,7 +125,8 @@ module make_base(string=$string) {
             minkowski() { // chamfer corners and flow letters
                 linear_extrude(depth/2) {
                     if (base_shape)
-                        text(string, size=font_size, font=font, halign="center", valign="center", $fn = 64);
+                        text(string, size=font_size, font=font,
+                             halign="center", valign="center", $fn = 64);
                     else
                         square([base_width, base_height], center=true);
                 }
@@ -139,14 +135,17 @@ module make_base(string=$string) {
 
         // carve out center magnet hole (difference)
         translate([0, 0, 0])
-            cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+            cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
+                                   magnet_diameter / 2 + 0.1, true);
 
         // carve out two additional magnet holes if needed
         if (base_width + base_radius > single_magnet_width) {
             translate([-base_width/2 + 10, 0, 0])
-                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
+                                       magnet_diameter / 2 + 0.1, true);
             translate([base_width/2 - 10, 0, 0])
-                cylinder(magnet_depth, magnet_diameter / 2 + 0.2, magnet_diameter / 2 + 0.1, true);
+                cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
+                                       magnet_diameter / 2 + 0.1, true);
         }
     }
 }
@@ -170,4 +169,5 @@ function substr(s, st, en, p="") =
 function split(h, s, p=[]) = let(x = search(h, s))
     x == []
     ? concat(p, s)
-    : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s))) split(h, r, concat(p, l));
+    : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s)))
+        split(h, r, concat(p, l));
