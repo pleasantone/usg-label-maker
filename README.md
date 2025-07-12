@@ -1,6 +1,8 @@
 # usg-label-maker
 
-Toolbox magnetic label generator in a font nearly matching Harbor
+Toolbox magnetic label generator.
+
+You can use any font, but this is designed around a font nearly matching Harbor
 Freight's US General font.
 
 The label generator is written in [OpenSCAD](https://openscad.org)
@@ -19,7 +21,10 @@ Oblique Black](https://www.fontspring.com/fonts/grype-type/avionic).
 In the sample code, I have referred to their Demo license copy so
 you can easily test, obviously you should either change fonts or
 buy a personal license should you use this for a finished project
-or commercially.
+or commercially.  Note that the individual Wide Oblique Black 
+weight can be purchased separately.  You do not have to purchase the 
+entire font family.
+
 
 ## Remix Improvements
 
@@ -29,23 +34,27 @@ The improvement to this label maker (from the original) are:
 * auto-sizes the bounding box for the labels
 * paints the text (during preview) so it's easier to read
 * checks to see if the label will exceed the bed-size of your printer
+* allows choice between internal magnets and holes in the bottom
 
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
   *labels*: array of names like ["SOCKETS", "RATCHETS"]
   *font*:  font to use
+  *hole type*: specify open holes on the bottom or internal holes
   *letter_size*: 8mm default
   *label depth*: 5mm default -- includes raised letters
+  *layer height*: default .20mm.  handles some calculations internally 
+    based on layer height.  
   *base_follows_letter*: false default -- experimental
     flowing of base to follow letter outlines.
     May produce more aesthetic results but can also look
-    strange letters with descenders (angled base) and trailing Ls
-    (opposite angle). Also very slow to render.
+    strange with letters with descenders like Q (angled base) and trailing Ls
+    (opposite angle). Also slow to render.
 
-It will only generate as many labels in the STL as will fit on the
-plate vertically, so you may have to batch your jobs (hence the
-labels1, labels2, ...).
+It will only generate as many labels as will fit on the plate
+vertically, so you may have to batch your jobs (hence the labels1,
+labels2, ...).
 
 ## Painting/Multi-Colors
 
@@ -53,6 +62,19 @@ If using an AMS, have your slicer cut the object on the Z plane,
 keeping both object together, and specify a different filament color
 (I use white on black) for the lettering over the background box.
 If you don't have an AMS, obviously do a filament change mid-print.
+
+## Hidden holes
+
+You can include the magnets internally in your labels, instead
+of gluing them in place or hoping for the best with a friction fit.
+
+When you slice the project, tell the slicer to pause after it prints 
+the highest level of the hole.  You'll have to look at the layers
+to figure out what layer this is.  
+
+In Bambu Studio, you do this by adjusting the green bar to the right
+of the Preview window.  Once you've found the right height, right-click
+on the adjustment on the bar and tell it to add a pause.
 
 ## Documentation from the original project by @Josh:
 
