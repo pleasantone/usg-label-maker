@@ -39,14 +39,14 @@ The improvement to this label maker (from the original) are:
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
-  *labels*: array of names like ["SOCKETS", "RATCHETS"]
-  *font*:  font to use
-  *hole type*: specify open holes on the bottom or internal holes
-  *letter_size*: 8mm default
-  *label depth*: 5mm default -- includes raised letters
-  *layer height*: default .20mm.  handles some calculations internally 
+ - *labels*: list of names separated by pipe characters, e.g: `LABEL 1|LABEL 2`
+ - *font*:  font to use
+ - *hole type*: specify open holes on the bottom or internal holes 
+ - *letter_size*: default 8mm
+ - *label depth*: default 5mm -- includes raised letters
+ - *layer height*: default .20mm.  handles some calculations internally 
     based on layer height.  
-  *base_follows_letter*: false default -- experimental
+ - *base_follows_letter*: default false -- experimental
     flowing of base to follow letter outlines.
     May produce more aesthetic results but can also look
     strange with letters with descenders like Q (angled base) and trailing Ls
