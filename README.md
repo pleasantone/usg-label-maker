@@ -1,11 +1,74 @@
 # usg-label-maker
 
-Toolbox magnetic label generator in a font nearly matching Harbor
-Freight's US General font.
+## Introduction
 
-The label generator is written in [OpenSCAD](https://openscad.org)
-and is a remix from [Magnetic Label
-Maker](https://www.printables.com/model/167349-magnetic-label-maker-scad).
+This is a magnetic label generator that I use to create my labels
+for my Harbor Freight US General series tool boxes/tool carts.  You
+can easily make a batch of custom labels for tool carts and tool
+boxes.
+
+The label generator is written to work either with the Makerworld
+Parametric Model Maker (aka the Customize button) or on a local
+copy of [OpenSCAD](https://openscad.org/downloads.html#snapshots).
+
+The included .3MF project includes a ton of labels you can use on
+their own, but it was my intention that you would use this to make
+your own custom labels.
+
+We print these labels with the magnet side down to the bed. The
+little amount of bridging needed means that supports should not be
+needed.
+
+### Remix Differences
+
+Originally written by Josh who produced a single label. This is
+complete rewrite of that code to support batch generation, the
+customizer, guardrails, and multi-part and multi-plate printing.
+His code was the inspiration for this code.
+
+## Usage
+
+### Option 1: MakerWorld Customizer Button
+
+#### Pros:
+- Nothing to install, just customize, download, and print.
+- Supports generating up to 4 plates at once.
+
+#### Cons:
+
+You must use one of the fonts supported by the customizer, which
+does not include any that match the US General font. Montserrat is
+kind of close, but not fantastic.
+
+1. Use the customizer to set the labels you wish to print.
+   Labels are delimited with the “|” character.
+1. Generate, download
+1. Slice and print.
+
+
+
+
+### Option 2: Local OpenSCAD
+
+#### Pros:
+- Not limited to Makerworld's font library.
+
+#### Cons:
+- More complicated
+- Requires OpenSCAD and font installation
+- Only supports one plate at a time.
+- Base and text are exported as two different parts of the object--just select which color filament to use for each part.
+
+1. Install OpenSCAD development snapshot. The last official release is from 2021 but it is actively maintained and we use features that do not exist in the official release. Hint: if using a recent MacOS, you may need to remove the quarantine flag from the downloaded file before it will run.
+1. Download/install desired fonts (see Getting the Fonts below).
+1. Go to **OpenSCAD > Preferences > Features** and enable lazy-union and text-metrics.
+1. Go to ** OpenSCAD > Preferences > Advanced** and set the 3D Rendering backend to **Manifold**.
+1. Download the `.SCAD` file, edit it and set the local\_openscad variable to 1 or true.
+1. Use the OpenSCAD customizer window or edit the source code to set the labels you wish to print. *Labels are delimited with the “|” character.*
+1. If using a different font, set the name of the font in OpenSCAD.
+1.  Do a preview rendering (F5), if it looks good, do a slower full rendering (F6), then Export the output as a .3MF file.
+1. Load the .3MF file into your slicer, answer Yes when the slicer prompts “Multi-part object detected.”
+1. Go to Objects menu, “OpenSCAD Model 1” represents all the bases, “OpenSCAD Model 2” is all of the text parts. Set desired colors or filament for each.
 
 ## Getting the fonts
 
@@ -21,57 +84,20 @@ you can easily test, obviously you should either change fonts or
 buy a personal license should you use this for a finished project
 or commercially.
 
-## Remix Improvements
-
-The improvement to this label maker (from the original) are:
-
-* can produce several labels at once
-* auto-sizes the bounding box for the labels
-* paints the text (during preview) so it's easier to read
-* checks to see if the label will exceed the bed-size of your printer
-
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
-  *labels*: array of names like ["SOCKETS", "RATCHETS"]
+  *local_openscad*: Running on MakerWorld or locally?
+  *labels*: label names, each delimited with "|" like "SOCKETS|RATCHETS|ALLEN WRENCHES”
   *font*:  font to use
   *letter_size*: 8mm default
   *label depth*: 5mm default -- includes raised letters
-  *base_follows_letter*: false default -- experimental
-    flowing of base to follow letter outlines.
-    May produce more aesthetic results but can also look
-    strange letters with descenders (angled base) and trailing Ls
-    (opposite angle). Also very slow to render.
+  *base_shape*:
+    0: default, a rectangle with rounded corners
+    1: Flows base shape to follow letter outlines.
+       May produce more aesthetic results but can also look
+       strange letters with descenders (angled base) and trailing Ls
+       (opposite angle). Slower to render but could be very cool.
 
 It will only generate as many labels in the STL as will fit on the
-plate vertically, so you may have to batch your jobs (hence the
-labels1, labels2, ...).
-
-## Painting/Multi-Colors
-
-If using an AMS, have your slicer cut the object on the Z plane,
-keeping both object together, and specify a different filament color
-(I use white on black) for the lettering over the background box.
-If you don't have an AMS, obviously do a filament change mid-print.
-
-## Documentation from the original project by @Josh:
-
-These are labels with recesses underneath them for magnets. The
-.stl files uploaded are the ones I used. They use 8mm x 3mm magnets
-*(correction: my version uses 8x2)* and are 17.4mm tall.
-
-I also uploaded the .scad file to allow you to make whatever label
-you want and to modify the magnet size. If you choose to make your
-own labels, OpenSCAD is how I created them - it's a free program
-and would allow you to modify my .scad file to your needs. When you
-modify it, I set up a couple of variables to allow changing the
-font, resizing the text, resizing the box, and changing the magnet
-dimensions easy.
-
-Why I used SCAD:
-
-I wanted to make magnetic labels for my workbenches and, with the
-number I'd need to make, thought this would be a good time to learn
-how to use .scad rather than making each label manually. A couple
-hours learning to use scad and putting this together allowed me to
-generate STLs for all of these labels in under 10 minutes.
+plate vertically, so you may have to batch your jobs as necessary.
