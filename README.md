@@ -62,13 +62,13 @@ kind of close, but not fantastic.
 1. Install OpenSCAD development snapshot. The last official release is from 2021 but it is actively maintained and we use features that do not exist in the official release. Hint: if using a recent MacOS, you may need to remove the quarantine flag from the downloaded file before it will run.
 1. Download/install desired fonts (see Getting the Fonts below).
 1. Go to **OpenSCAD > Preferences > Features** and enable lazy-union and text-metrics.
-1. Go to ** OpenSCAD > Preferences > Advanced** and set the 3D Rendering backend to **Manifold**.
+1. Go to **OpenSCAD > Preferences > Advanced** and set the 3D Rendering backend to **Manifold**.
 1. Download the `.SCAD` file, edit it and set the local\_openscad variable to 1 or true.
 1. Use the OpenSCAD customizer window or edit the source code to set the labels you wish to print. *Labels are delimited with the “|” character.*
 1. If using a different font, set the name of the font in OpenSCAD.
 1.  Do a preview rendering (F5), if it looks good, do a slower full rendering (F6), then Export the output as a .3MF file.
 1. Load the .3MF file into your slicer, answer Yes when the slicer prompts “Multi-part object detected.”
-1. Go to Objects menu, “OpenSCAD Model 1” represents all the bases, “OpenSCAD Model 2” is all of the text parts. Set desired colors or filament for each.
+1. Go to Objects menu, “OpenSCAD Model 1” represents all the bases, “OpenSCAD Model 2” is all of the text parts. Set desired colors or filament for each part.
 
 ## Getting the fonts
 
@@ -87,17 +87,18 @@ or commercially.
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
-  *local_openscad*: Running on MakerWorld or locally?
-  *labels*: label names, each delimited with "|" like "SOCKETS|RATCHETS|ALLEN WRENCHES”
-  *font*:  font to use
-  *letter_size*: 8mm default
-  *label depth*: 5mm default -- includes raised letters
-  *base_shape*:
-    0: default, a rectangle with rounded corners
-    1: Flows base shape to follow letter outlines.
-       May produce more aesthetic results but can also look
-       strange letters with descenders (angled base) and trailing Ls
-       (opposite angle). Slower to render but could be very cool.
+
+- *local_openscad*: Running on MakerWorld or locally?
+- *labels*: label names, each delimited with "|" like "SOCKETS|RATCHETS|ALLEN WRENCHES”
+- *font*: font to use
+- *letter_size*: 8mm default
+- *label depth*: 5mm default -- includes raised letters
+- *base_shape*:
+     0: default, a rectangle with rounded corners
+     1: Flows base shape to follow letter outlines.
+        May produce more aesthetic results but can also look
+        strange letters with descenders (angled base) and trailing Ls
+        (opposite angle). Slower to render but could be very cool.
 
 It will only generate as many labels in the STL as will fit on the
 plate vertically, so you may have to batch your jobs as necessary.
