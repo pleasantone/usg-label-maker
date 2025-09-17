@@ -10,7 +10,7 @@
   in the .3mf. 
   
   Additionally, Makerworld cannot add fonts, so we can't get the exact US General matching font.
-  I have found that Montserrat Bold is moderately close.
+  I have found that Montserrat Extra Bold Italic is moderately close.
   
   With OpenSCAD locally, we only support producing one (the first) plate at a time.
   You can generate either .STL files or .3MFs but no color information will be encoded.
@@ -45,7 +45,7 @@ plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUT
    and is not installed on either OpenSCAD or with Makerworld. You will need
    to download a closely matching font.
    
-   The best font available on Makerworld is Montserrat Bold.
+   The best font available on Makerworld is Montserrat Extra Bold Italic.
 
    For local operation, where you can use any font you find on the web,
    Avionic Wide Oblique Black is quite close to the USG font, any of
@@ -79,8 +79,8 @@ plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUT
 // best local OpenSCAD font
 // font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; // font
 
-// best Makerworld font is Montserrat
-font = "Montserrat:style=Bold"; //font
+// best Makerworld font is Montserrat ExtraBold Italic
+font = "Montserrat:style=ExtraBold Italic"; //font
 
 // Font size in points
 font_size = 8; // [5:32]
@@ -228,9 +228,9 @@ module make_base(string=$string) {
                 linear_extrude(depth/2, center=false) {
                     if (base_outline)
                         text(string, size=font_size, font=font,
-                             halign="left", valign="bottom", $fn = 64);
+                             halign="center", valign="center", $fn = 64);
                     else
-                        square([base_width, base_height], center=false);
+                        square([base_width, base_height], center=true);
                 }
                 cylinder(h=1, r=base_radius);
             }
@@ -254,10 +254,10 @@ module make_base(string=$string) {
 
 // Make the text part of an object -- will position on top of base.
 module make_text(string=$string) {
-    translate([0, 0, depth/2])
+    translate([0, 0, ceil(depth/2)])
         linear_extrude(depth/2, center=false)
             text(string, size = font_size, font = font,
-                 halign = "left", valign = "bottom", $fn = 64);
+                 halign = "center", valign = "center", $fn = 64);
 }
 
 // extract a substring from a string
