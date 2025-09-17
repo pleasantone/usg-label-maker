@@ -113,7 +113,7 @@ depth = 5;
 magnet_diameter = 8;
 
 // Depth of the magnet hole in mm
-magnet_depth = 2;
+magnet_depth = 3;
 
 // Used for encapsulating magnets
 magnet_z_offset = 0; // 0 is open bottom
