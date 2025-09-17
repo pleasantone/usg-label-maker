@@ -77,7 +77,7 @@ plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUT
 */
 
 // best local OpenSCAD font
-// font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black:style=Regular"; // font
+// font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; // font
 
 // best Makerworld font is Montserrat
 font = "Montserrat:style=Bold"; //font
