@@ -33,7 +33,7 @@
 local_openscad = 0; // [0:MakerWorld Customizer, 1:Local OpenSCAD]
 
 // The labels to print, delimited by "|"
-plate_labels_1 = "SAE SOCKETS|RATCHETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL";
+plate_labels_1 = "SAE SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL";
 // Multiple plate support only works on Makerworld
 plate_labels_2 = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
 plate_labels_3 = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDIERING";
@@ -88,6 +88,7 @@ font_size = 8; // [5:32]
 /* [Colors] */
 // Base color
 base_color = "#000000"; // color
+
 // Text color
 text_color = "#FFFFFF"; // color
 
@@ -101,25 +102,34 @@ text_color = "#FFFFFF"; // color
 
 // Should the base follow an outline of the letters? (see notes!)
 base_outline = 0; // [0: Standard Base, 1: Follow letter shapes]
+
 // Rounded corner radius (default 2mm, 0 for sharp corners)
-base_radius = 2.0;
+base_radius = 2;
+
 // Total depth in mm of badge and base in mm (default 5mm)
-depth = 5.0;
-// Depth of the magnet hole in mm
-magnet_depth = 3.75;
+depth = 5;
+
 // Diameter of the magnet hole in mm
-magnet_diameter = 8.0;
+magnet_diameter = 8;
+
+// Depth of the magnet hole in mm
+magnet_depth = 2;
+
+// Used for encapsulating magnets
+magnet_z_offset = 0; // 0 is open bottom
+
 // If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
 single_magnet_width = 36;
 
-/* [Advanced: Printer and offset settings] */
-// distance between labels on plate in mm
-label_y_offset = 20.0;
+/* [Advanced: Printer settings] */
 // printer bed size (BambuLab A1/P1/X1 are 255x255)
 bed_size=[255, 255];
 
 /* [ Hidden ] */
 $fn = 32; // Model detail, higher is more detail and more processing
+
+// distance between labels on plate in mm
+label_y_offset = font_size + 4 + base_outline;
 
 
 
@@ -214,7 +224,7 @@ module make_base(string=$string) {
     difference() {
         hull() // wrap all words
             minkowski() { // chamfer corners and flow letters
-                linear_extrude(depth/2) {
+                linear_extrude(depth/2, center=false) {
                     if (base_outline)
                         text(string, size=font_size, font=font,
                              halign="center", valign="center", $fn = 64);
@@ -225,26 +235,26 @@ module make_base(string=$string) {
             }
 
         // carve out center magnet hole (difference)
-        translate([0, 0, 0])
+        translate([0, 0, magnet_z_offset])
             cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                   magnet_diameter / 2 + 0.1, true);
+                                   magnet_diameter / 2 + 0.1, center=false);
 
         // carve out two additional magnet holes if needed
         if (base_width + base_radius > single_magnet_width) {
-            translate([-base_width/2 + 10, 0, 0])
+            translate([-base_width/2 + 10, 0, magnet_z_offset])
                 cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                       magnet_diameter / 2 + 0.1, true);
-            translate([base_width/2 - 10, 0, 0])
+                                       magnet_diameter / 2 + 0.1, center=false);
+            translate([base_width/2 - 10, 0, magnet_z_offset])
                 cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                       magnet_diameter / 2 + 0.1, true);
+                                       magnet_diameter / 2 + 0.1, center=false);
         }
     }
 }
 
 // Make the text part of an object -- will position on top of base.
 module make_text(string=$string) {
-    translate([0, 0, (depth/2)+1.0])
-        linear_extrude(depth/2)
+    translate([0, 0, depth/2])
+        linear_extrude(depth/2, center=false)
             text(string, size = font_size, font = font,
                  halign = "center", valign = "center", $fn = 64);
 }
