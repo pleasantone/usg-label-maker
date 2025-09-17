@@ -207,7 +207,7 @@ module iterate_labels(labels) {
                 let ($string = label_group[idx])
                     children();
         else
-            echo(str("WARNING: Not enough room to print ", label_group[idx]));
+            echo(str("WARNING: Not enough Y-axis plate space to print ", label_group[idx]));
     }
 }
 
@@ -217,8 +217,9 @@ module make_base(string=$string) {
     base_width = tmetrics["size"][0];
     base_height = tmetrics["size"][1];
 
-    // double-check that a single label won't be too wide
-    assert(base_width + base_radius < bed_size[0]);
+    if (base_width + base_radius > bed_size[0]) {
+        echo(str("WARNING: Not enough X-axis plate space to print ", string, " (", ceil(base_width+base_radius), ")"));
+    }
 
     // make the base
     difference() {
@@ -227,9 +228,9 @@ module make_base(string=$string) {
                 linear_extrude(depth/2, center=false) {
                     if (base_outline)
                         text(string, size=font_size, font=font,
-                             halign="center", valign="center", $fn = 64);
+                             halign="left", valign="bottom", $fn = 64);
                     else
-                        square([base_width, base_height], center=true);
+                        square([base_width, base_height], center=false);
                 }
                 cylinder(h=1, r=base_radius);
             }
@@ -256,7 +257,7 @@ module make_text(string=$string) {
     translate([0, 0, depth/2])
         linear_extrude(depth/2, center=false)
             text(string, size = font_size, font = font,
-                 halign = "center", valign = "center", $fn = 64);
+                 halign = "left", valign = "bottom", $fn = 64);
 }
 
 // extract a substring from a string
