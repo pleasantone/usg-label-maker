@@ -121,6 +121,9 @@ magnet_z_offset = 0; // 0 is open bottom
 // If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
 single_magnet_width = 36;
 
+// Y gap between labels
+label_y_spacing = 6; // [4:10]
+
 /* [Advanced: Printer settings] */
 // printer bed size (BambuLab A1/P1/X1 are 255x255)
 bed_size=[255, 255];
@@ -129,7 +132,7 @@ bed_size=[255, 255];
 $fn = 32; // Model detail, higher is more detail and more processing
 
 // distance between labels on plate in mm
-label_y_offset = font_size + 4 + base_outline;
+label_y_offset = font_size + label_y_spacing + base_outline;
 
 
 
