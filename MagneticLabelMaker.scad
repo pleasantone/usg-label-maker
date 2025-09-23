@@ -18,19 +18,8 @@
   Load both parts together using your slicer, and then use your slicer to assign color information.
 */
 
-
-/*
-  Some notes on why this code is sometimes ugly:
-  
-  Unfortunately, due to some design decisions by the language authors/hackers,
-  we cannot necessariy hide all the differences with if statements and there is no
-  magic way to determine at run-time that we are using one or the other environment.
-  
-  It's ugly because it had to be done the way it was done (sad face).
- */ 
-
 // Are we running on a local instance of OpenSCAD or the MakerWorld customer?
-local_openscad = 0; // [0:MakerWorld Customizer, 1:Local OpenSCAD]
+// local_openscad = 0; // [0:MakerWorld Customizer, 1:Local OpenSCAD]
 
 // The labels to print, delimited by "|"
 plate_labels_1 = "SAE SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL";
@@ -54,21 +43,9 @@ plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUT
    https://demofont.com/avionic-sans-serif-font/
    https://www.ffonts.net/sdprostreet-Regular.font
    https://www.ffonts.net/Concielian-Bold-Semi-Italic.font
-   
-   Download them and unpack them.
 
-   There are two ways to install private fonts, the easiest
-   is to install it in your system. The other way is to add
-   "use </path/to/font/file.ttf>" to this .scad file and then set
-   the font name. For example:
-
-   use <Avionic Font/Fontspring-DEMO-avionicwideoblique-black.otf>
-   font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black:style=Regular";
-
-   or:
-
-   use <sd prostreet.ttf>
-   font = "sd prostreet";
+   Download one or more of them and unpack.
+   Install the downloaded font(s) to your system. (On a Mac, double-click the .ttf and install.)
 
    You might need to restart OpenSCAD in order for it to recognize
    newly installed or "used' fonts.
@@ -92,7 +69,7 @@ base_color = "#000000"; // color
 // Text color
 text_color = "#FFFFFF"; // color
 
-/* [Advanced: Base details] */
+/* [Advanced: Base Details] */
 /*
    If base_outline is true, the base will flow with letter shapes. It is slower
    to render and could be unaesthetic when using letters with descenders
@@ -103,8 +80,8 @@ text_color = "#FFFFFF"; // color
 // Should the base follow an outline of the letters? (see notes!)
 base_outline = 0; // [0: Standard Base, 1: Follow letter shapes]
 
-// Rounded corner radius (default 2mm, 0 for sharp corners)
-base_radius = 2;
+// Rounded corner radius in mm (default 2mm)
+base_radius = 2; // [1:10]
 
 // Total depth in mm of badge and base in mm (default 5mm)
 depth = 5;
@@ -116,25 +93,25 @@ magnet_diameter = 8;
 magnet_depth = 3;
 
 // Used for encapsulating magnets
-magnet_z_offset = 0; // 0 is open bottom
+magnet_z_offset = 0; // 0 is open bottom (default)
 
 // If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
 single_magnet_width = 36;
 
-// Y gap between labels
-label_y_spacing = 6; // [4:10]
+// Extra Y gap between labels in case they smush together
+label_y_extra_spacing = 0; // [0:10]
 
 /* [Advanced: Printer settings] */
 // printer bed size (BambuLab A1/P1/X1 are 255x255)
 bed_size=[255, 255];
 
+/* [Advanced: Makerworld Detection] */
+makerworld_version = [2024, 12, 31];
+
 /* [ Hidden ] */
 $fn = 32; // Model detail, higher is more detail and more processing
 
-// distance between labels on plate in mm
-label_y_offset = font_size + label_y_spacing + base_outline;
-
-
+/* -------------------------------------------------------------------------- */
 
 /* Maker World Multi-plate
    The following modules will only be executed when using the
@@ -145,28 +122,12 @@ label_y_offset = font_size + label_y_spacing + base_outline;
    The name of module should be in syntax: mw_plate_1(), mw_plate_2(), etc.
 */
 
-module mw_plate_1(labels=plate_labels_1) {
-    if (len(labels)) {
-        color(base_color) iterate_labels(labels) make_base();
-        color(text_color) iterate_labels(labels) make_text();
-    }
-}
+module mw_plate_1(labels=plate_labels_1) mw_make_labels(labels);
+module mw_plate_2(labels=plate_labels_2) mw_make_labels(labels);
+module mw_plate_3(labels=plate_labels_3) mw_make_labels(labels);
+module mw_plate_4(labels=plate_labels_4) mw_make_labels(labels);
 
-module mw_plate_2(labels=plate_labels_2) {
-    if (len(labels)) {
-        color(base_color) iterate_labels(labels) make_base();
-        color(text_color) iterate_labels(labels) make_text();
-    }
-}
-
-module mw_plate_3(labels=plate_labels_3) {
-    if (len(labels)) {
-        color(base_color) iterate_labels(labels) make_base();
-        color(text_color) iterate_labels(labels) make_text();
-    }
-}
-
-module mw_plate_4(labels=plate_labels_4) {
+module mw_make_labels(labels) {
     if (len(labels)) {
         color(base_color) iterate_labels(labels) make_base();
         color(text_color) iterate_labels(labels) make_text();
@@ -186,43 +147,53 @@ module mw_plate_4(labels=plate_labels_4) {
    Then go into the object menu and set filaments as you want them colored.
 */
 
-if (local_openscad) {
+if (version() != makerworld_version) {
+    echo("Local OpenSCAD detected");
     color(base_color)
         iterate_labels(plate_labels_1)
             make_base(); // all the bases will export as a single object
-}
 
-if (local_openscad) {
     color(text_color)
          iterate_labels(plate_labels_1)
             make_text(); // all the text will export as a single object
 }
 
-/* ------------------------ */
 
+/* ------------------------ */
 
 module iterate_labels(labels) {
     label_group = is_string(labels) ? split("|", labels) : labels;
-    for (idx = [0:len(label_group)-1]) {
-        offset = idx * label_y_offset;
-        if (offset < bed_size[1] - label_y_offset * 2)
-            translate([0, offset, 0])
-                let ($string = label_group[idx])
-                    children();
-        else
-            echo(str("WARNING: Not enough Y-axis plate space to print ", label_group[idx]));
+    offset = gap(label_group) + label_y_extra_spacing;
+
+    for (index = [0: len(label_group)-1]) {
+        label = label_group[index];
+        y_start = offset * index;
+        if (y_start > bed_size[1] - offset * 2)
+            echo(str("WARNING: Not enough Y-axis plate space to print ",
+                 label));
+        translate([0, y_start, 0]) let($string = label) children();
     }
 }
 
-module make_base(string=$string) {
+// calculate the maximum height of any of our labels
+function gap(label_group) =
+    max([for(label = label_group) label_height(label)]) + base_radius;
+
+// the height of a label
+function label_height(string) =
+    ceil(textmetrics(string, size = font_size, font = font,
+         halign = "center", valign = "center", $fn = 64)["size"][1]) +
+         base_radius;
+
+// make the base part of an object
+module make_base(string = $string) {
     tmetrics = textmetrics(string, size = font_size, font = font,
                            halign = "center", valign = "center", $fn=64);
     base_width = tmetrics["size"][0];
     base_height = tmetrics["size"][1];
 
-    if (base_width + base_radius > bed_size[0]) {
-        echo(str("WARNING: Not enough X-axis plate space to print ", string, " (", ceil(base_width+base_radius), ")"));
-    }
+    if (base_width + base_radius > bed_size[0])
+        echo(str("WARNING: Not enough X-axis plate space to print ", string));
 
     // make the base
     difference() {
@@ -256,7 +227,7 @@ module make_base(string=$string) {
 }
 
 // Make the text part of an object -- will position on top of base.
-module make_text(string=$string) {
+module make_text(string = $string) {
     translate([0, 0, ceil(depth/2)])
         linear_extrude(depth/2, center=false)
             text(string, size = font_size, font = font,
