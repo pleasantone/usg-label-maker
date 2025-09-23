@@ -105,10 +105,10 @@ label_y_extra_spacing = 0; // [0:10]
 // printer bed size (BambuLab A1/P1/X1 are 255x255)
 bed_size=[255, 255];
 
-/* [Advanced: Makerworld Detection] */
-makerworld_version = [2024, 12, 31];
-
 /* [ Hidden ] */
+makerworld_version = [2024, 12, 31];
+local_openscad = version() != makerworld_version;
+
 $fn = 32; // Model detail, higher is more detail and more processing
 
 /* -------------------------------------------------------------------------- */
@@ -147,8 +147,7 @@ module mw_make_labels(labels) {
    Then go into the object menu and set filaments as you want them colored.
 */
 
-if (version() != makerworld_version) {
-    echo("Local OpenSCAD detected");
+if (local_openscad) {
     color(base_color)
         iterate_labels(plate_labels_1)
             make_base(); // all the bases will export as a single object
@@ -168,9 +167,8 @@ module iterate_labels(labels) {
     for (index = [0: len(label_group)-1]) {
         label = label_group[index];
         y_start = offset * index;
-        if (y_start > bed_size[1] - offset * 2)
-            echo(str("WARNING: Not enough Y-axis plate space to print ",
-                 label));
+        assert(y_start < (bed_size.y - offset * 2),
+               str("ERROR: Not enough Y-axis plate space to print ", label, " --decrease label count or font size"));
         translate([0, y_start, 0]) let($string = label) children();
     }
 }
@@ -192,8 +190,8 @@ module make_base(string = $string) {
     base_width = tmetrics["size"][0];
     base_height = tmetrics["size"][1];
 
-    if (base_width + base_radius > bed_size[0])
-        echo(str("WARNING: Not enough X-axis plate space to print ", string));
+    assert(base_width + base_radius < bed_size.x,
+           str("ERROR: Not enough X-axis plate space to print ", string, " --decrease label length or font size"));
 
     // make the base
     difference() {
