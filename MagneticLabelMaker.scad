@@ -19,10 +19,11 @@
 */
 
 // Are we running on a local instance of OpenSCAD or the MakerWorld customer?
-// local_openscad = 0; // [0:MakerWorld Customizer, 1:Local OpenSCAD]
+openscad_mode = 0; // [0: Makerworld Customizer, 1: Local OpenSCAD, 2: Automatic]
 
 // The labels to print, delimited by "|"
 plate_labels_1 = "SAE SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL";
+
 // Multiple plate support only works on Makerworld
 plate_labels_2 = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
 plate_labels_3 = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDIERING";
@@ -106,8 +107,8 @@ label_y_extra_spacing = 0; // [0:10]
 bed_size=[255, 255];
 
 /* [ Hidden ] */
-makerworld_version = [2024, 12, 31];
-local_openscad = version() != makerworld_version;
+makerworld_version = [2025, 9, 24];
+local_openscad = openscad_mode == 2 ? version() != makerworld_version : openscad_mode;
 
 $fn = 32; // Model detail, higher is more detail and more processing
 
