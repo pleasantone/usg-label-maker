@@ -1,6 +1,17 @@
 #!/bin/bash
 
-badges="SAE SOCKETS|METRIC SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE|MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING|HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT|SPECIALTY SOCKETS|BRAKE TOOLS|HAMMERS|SAE WRENCHES|METRIC WRENCHES|VISE GRIPS|AIR TOOLS|POWER TOOLS|SNACKS|ELECTRICAL TOOLS|ELECTRICAL DIAGNOSTICS|ALLEN|TORX|HARDWARE|EXTENSIONS|BREAKER BARS|HEX KEYS|SAE|METRIC|SOCKETS|ELECTRICAL|NO TOUCH|BITS|IMPACT WRENCHES|1/4\\\" RATCHETS|3/8\\\" RATCHETS|1/2\\\" RATCHETS|I WASN'T ASKING TOOL|1/4 RATCHETS|3/8 RATCHETS|1/2 RATCHETS";
+# Check if filename was provided
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <filename>"
+  exit 1
+fi
+
+INPUT="$1"
+
+if [ ! -r "$INPUT" ]; then
+  echo "Error: File '$INPUT' is not readable."
+  exit 1
+fi
 
 sanitize_filename() {
   local input="$1"
@@ -24,27 +35,15 @@ sanitize_filename() {
   echo "$cleaned_name"
 }
 
-# Save the original IFS value to restore it later
-OLD_IFS=$IFS
-
-# Set IFS to a comma to split the string by commas
-IFS='|'
-
-# Iterate over the items in the string
-for item in $badges; do
-  file=$(sanitize_filename "$item")
-  echo "Processing item: $item to $file"
+while IFS= read -r item ; do
+  file=part_$(sanitize_filename "$item").stl
+  echo "Processing badge: $item to $file"
   # Build the OpenSCAD command
   # -D defines a variable in the script
   # -o specifies the output file name
-  set -x
   /Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD \
       --enable textmetrics --enable lazy-union \
       -D font="\"sd prostreet\"" -D MakerWorld_Customizer_Environment=false \
       -D magnet_depth=2 -D plate_labels_1="\"$item\"" \
-      -o part_$file.stl MagneticLabelMaker.scad
-  set +x
-done
-
-# Restore the original IFS value
-IFS=$OLD_IFS
+      -o $file MagneticLabelMaker.scad || { echo "failed"; exit 1; }
+done < $INPUT
