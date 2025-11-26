@@ -5,40 +5,44 @@
   We have two similar but different working environments, OpenSCAD locally or
   online with a customizer like Makerworld's Parametric Model Maker
   
-  With Makerworld's product, we can support up to four plates of labels to be
-  generated at once. Makerworld's extensions allow for encoding color information
-  in the .3mf. 
-  
-  Additionally, Makerworld cannot add fonts, so we can't get the exact US General matching font.
-  I have found that Montserrat Extra Bold Italic is moderately close.
-  
-  With OpenSCAD locally, we only support producing one (the first) plate at a time.
-  You can generate either .STL files or .3MFs but no color information will be encoded.
-  The output file will contain two object parts, the base of and the text.
-  Load both parts together using your slicer, and then use your slicer to assign color information.
+  With MakerWorld's product, we can support up to five plates of
+  labels to be generated at once. MakerWorld's extensions allow for
+  encoding color information in the .3mf.
+
+  However, MakerWorld cannot add user fonts, so we can't get the
+  closest US General matching font.  I have found that MakerWorld's
+  Montserrat Extra Bold Italic is moderately close.
+
+  With OpenSCAD locally, we only support producing one (the first)
+  plate at a time.  You can generate either .STL files or .3MFs but
+  no color information will be encoded.  The output file will contain
+  two object parts, the base of and the text.  Load both parts
+  together using your slicer, and then use your slicer to assign
+  color information.
 */
 
-// Are we running on a local instance of OpenSCAD or the MakerWorld customer?
-openscad_mode = 0; // [0: Makerworld Customizer, 1: Local OpenSCAD, 2: Automatic]
+// Are we running on MakerWorld or a local instance of OpenSCAD?
+MakerWorld_Customizer_Environment = true;
 
 // The labels to print, delimited by "|"
-plate_labels_1 = "SAE SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL";
+plate_labels_1 = "METRIC SOCKETS|SAE SOCKETS|SPECIALTY SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING";
 
-// Multiple plate support only works on Makerworld
-plate_labels_2 = "CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE";
-plate_labels_3 = "MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDIERING";
-plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT";
+// Multiple plate support only works on MakerWorld
+plate_labels_2 = "SHEARS|MEASURING|MISC|PPE|MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING|HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS";
+plate_labels_3 = "AUTOMOTIVE TOOLS|OILS|PAINT|BRAKE TOOLS|HAMMERS|SAE WRENCHES|METRIC WRENCHES|VISE GRIPS|AIR TOOLS|POWER TOOLS|SNACKS|ELECTRICAL TOOLS|ELECTRICAL DIAGNOSTICS|ALLEN|TORX|HARDWARE";
+plate_labels_4 = "EXTENSIONS|BREAKER BARS|HEX KEYS|SAE|METRIC|SOCKETS|ELECTRICAL|NO TOUCH|BITS|IMPACT WRENCHES|1/4\" RATCHETS|3/8\" RATCHETS|1/2\" RATCHETS|I WASN'T ASKING TOOL";
+plate_labels_5 = "DON'T TOUCH MY TOOLS";
 
 /* A note on fonts:
 
    If you are intending to match the US General font, it is non-standard
-   and is not installed on either OpenSCAD or with Makerworld. You will need
+   and is not installed on either OpenSCAD or with MakerWorld. You will need
    to download a closely matching font.
    
-   The best font available on Makerworld is Montserrat Extra Bold Italic.
+   The best font available on MakerWorld is Montserrat Extra Bold Italic.
 
    For local operation, where you can use any font you find on the web,
-   Avionic Wide Oblique Black is quite close to the USG font, any of
+   Avionic Wide Oblique Black is quite close to the USG font, but any of
    these are close:
 
    https://demofont.com/avionic-sans-serif-font/
@@ -54,10 +58,11 @@ plate_labels_4 = "HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUT
    I used Avionic Wide Oblique Black's demo in the pictures.
 */
 
-// best local OpenSCAD font
+// best local OpenSCAD fonts
 // font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; // font
+// font = "sd prostreet"; // font
 
-// best Makerworld font is Montserrat ExtraBold Italic
+// best MakerWorld font is Montserrat ExtraBold Italic
 font = "Montserrat:style=ExtraBold Italic"; //font
 
 // Font size in points
@@ -70,7 +75,7 @@ base_color = "#000000"; // color
 // Text color
 text_color = "#FFFFFF"; // color
 
-/* [Advanced: Base Details] */
+/* [Details] */
 /*
    If base_outline is true, the base will flow with letter shapes. It is slower
    to render and could be unaesthetic when using letters with descenders
@@ -79,7 +84,7 @@ text_color = "#FFFFFF"; // color
 */
 
 // Should the base follow an outline of the letters? (see notes!)
-base_outline = 0; // [0: Standard Base, 1: Follow letter shapes]
+base_outline = 0; // [0: Standard base, 1: Follow letter shapes]
 
 // Rounded corner radius in mm (default 2mm)
 base_radius = 2; // [1:10]
@@ -93,22 +98,31 @@ magnet_diameter = 8;
 // Depth of the magnet hole in mm
 magnet_depth = 3;
 
-// Used for encapsulating magnets
-magnet_z_offset = 0; // 0 is open bottom (default)
+// Fully encapsulated magnets or open at the base. If encapsulate, pause the print at the top of the hole to insert magnets
+encapsulate_magnets = false;
+
+/* [Printer dimensions] */
+// printer bed size (BambuLab A1/P1/X1 are approximately 255mmx255mm)
+bed_size=[255, 255];
+
+/* [Advanced] */
+magnet_depth_clearance = 0.1; // Depth clearance for magnet
+magnet_cylinder_top_clearance = 0.1; // Top of magnet cutout clearnace
+magnet_cylinder_bottom_clearance = 0.2; // Bottom of magnet cutout clearance
+magnet_depth_offset = encapsulate_magnets ? magnet_depth_clearance * 2 : 0;
+
+magnet_hole_bore = magnet_depth + magnet_depth_clearance;
+magnet_hole_top = magnet_hole_bore + magnet_depth_offset;
 
 // If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
 single_magnet_width = 36;
 
 // Extra Y gap between labels in case they smush together
-label_y_extra_spacing = 0; // [0:10]
-
-/* [Advanced: Printer settings] */
-// printer bed size (BambuLab A1/P1/X1 are 255x255)
-bed_size=[255, 255];
+label_y_extra_spacing = 0;
 
 /* [ Hidden ] */
-makerworld_version = [2025, 9, 24];
-local_openscad = openscad_mode == 2 ? version() != makerworld_version : openscad_mode;
+
+base_depth = magnet_hole_top + (magnet_depth_clearance*2);
 
 $fn = 32; // Model detail, higher is more detail and more processing
 
@@ -127,6 +141,7 @@ module mw_plate_1(labels=plate_labels_1) mw_make_labels(labels);
 module mw_plate_2(labels=plate_labels_2) mw_make_labels(labels);
 module mw_plate_3(labels=plate_labels_3) mw_make_labels(labels);
 module mw_plate_4(labels=plate_labels_4) mw_make_labels(labels);
+module mw_plate_5(labels=plate_labels_5) mw_make_labels(labels);
 
 module mw_make_labels(labels) {
     if (len(labels)) {
@@ -148,7 +163,7 @@ module mw_make_labels(labels) {
    Then go into the object menu and set filaments as you want them colored.
 */
 
-if (local_openscad) {
+if (!MakerWorld_Customizer_Environment) {
     color(base_color)
         iterate_labels(plate_labels_1)
             make_base(); // all the bases will export as a single object
@@ -167,19 +182,19 @@ module iterate_labels(labels) {
 
     for (index = [0: len(label_group)-1]) {
         label = label_group[index];
-        y_start = offset * index;
-        assert(y_start < (bed_size.y - offset * 2),
-               str("ERROR: Not enough Y-axis plate space to print ", label, " --decrease label count or font size"));
+        y_start = (bed_size.y / -2) + offset * index;
+        assert(y_start < (bed_size.y / 2 - offset * 2),
+               str("ERROR: Not enough Y-axis plate space to print " , label, "--decrease label count or font size"));
         translate([0, y_start, 0]) let($string = label) children();
     }
 }
 
 // calculate the maximum height of any of our labels
 function gap(label_group) =
-    max([for(label = label_group) label_height(label)]) + base_radius;
+    max([for(label = label_group) label_len_y(label)]) + base_radius;
 
-// the height of a label
-function label_height(string) =
+// the y length of a label
+function label_len_y(string) =
     ceil(textmetrics(string, size = font_size, font = font,
          halign = "center", valign = "center", $fn = 64)["size"][1]) +
          base_radius;
@@ -192,13 +207,13 @@ module make_base(string = $string) {
     base_height = tmetrics["size"][1];
 
     assert(base_width + base_radius < bed_size.x,
-           str("ERROR: Not enough X-axis plate space to print ", string, " --decrease label length or font size"));
+           str("ERROR: Not enough X-axis plate space to print ", string, ", decrease label length or font size"));
 
     // make the base
     difference() {
         hull() // wrap all words
             minkowski() { // chamfer corners and flow letters
-                linear_extrude(depth/2, center=false) {
+                linear_extrude(base_depth, center=false) {
                     if (base_outline)
                         text(string, size=font_size, font=font,
                              halign="center", valign="center", $fn = 64);
@@ -208,27 +223,27 @@ module make_base(string = $string) {
                 cylinder(h=1, r=base_radius);
             }
 
-        // carve out center magnet hole (difference)
-        translate([0, 0, magnet_z_offset])
-            cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                   magnet_diameter / 2 + 0.1, center=false);
-
-        // carve out two additional magnet holes if needed
+        // cut out center magnet hole (difference)
+        translate([0, 0, magnet_depth_offset]) cut_magnet();
+        // cut out two additional magnet holes if needed
         if (base_width + base_radius > single_magnet_width) {
-            translate([-base_width/2 + 10, 0, magnet_z_offset])
-                cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                       magnet_diameter / 2 + 0.1, center=false);
-            translate([base_width/2 - 10, 0, magnet_z_offset])
-                cylinder(magnet_depth, magnet_diameter / 2 + 0.2,
-                                       magnet_diameter / 2 + 0.1, center=false);
+            translate([-base_width/2 + 10, 0, magnet_depth_offset]) cut_magnet();
+            translate([base_width/2 - 10, 0, magnet_depth_offset]) cut_magnet();
         }
     }
 }
 
+module cut_magnet() {
+    cylinder(magnet_hole_bore,
+             magnet_diameter / 2 + magnet_cylinder_bottom_clearance,
+             magnet_diameter / 2 + magnet_cylinder_top_clearance,
+             center=false);
+}
+
 // Make the text part of an object -- will position on top of base.
 module make_text(string = $string) {
-    translate([0, 0, ceil(depth/2)])
-        linear_extrude(depth/2, center=false)
+    translate([0, 0, base_depth])
+        linear_extrude(depth - base_depth, center=false)
             text(string, size = font_size, font = font,
                  halign = "center", valign = "center", $fn = 64);
 }
