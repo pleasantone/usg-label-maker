@@ -1,12 +1,50 @@
 #!/bin/bash
 
-# Check if filename was provided
-if [ $# -eq 0 ]; then
-  echo "Usage: $0 <filename>"
-  exit 1
+PARAMETERS=""
+INPUT=""
+EXTRA=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -p|--parameters)
+            PARAMETERS="$2"
+            shift 2
+            ;;
+        -*)
+            echo "Error: Unknown option $1"
+            exit 1
+            ;;
+        *)
+            if [[ -z "$INPUT" ]]; then
+                echo foo
+                INPUT="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Check if mandatory positional argument was provided
+if [[ -z "$INPUT" ]]; then
+    echo "Error: Missing input file"
+    echo "Usage: $0 [-p|--parameters MODE] <filename>"
+    exit 1
 fi
 
-INPUT="$1"
+case $PARAMETERS in
+    tight)
+        EXTRA="-D magnet_cylinder_top_clearance=0.05 -D magnet_cylinder_bottom_clearance=0.15"
+        ;;
+    tighter)
+        EXTRA="-D magnet_cylinder_top_clearance=0.0 -D magnet_cylinder_bottom_clearance=0.1"
+        ;;
+    "")
+        ;;
+    *)
+        echo "Error: unknown parameter set $1"
+        exit 1
+        ;;
+esac
 
 if [ ! -r "$INPUT" ]; then
   echo "Error: File '$INPUT' is not readable."
@@ -35,15 +73,24 @@ sanitize_filename() {
   echo "$cleaned_name"
 }
 
+if [[ -n "$PARAMETERS" ]]; then
+    test -d $PARAMETERS || mkdir $PARAMETERS
+else
+    PARAMETERS=.
+fi
+
 while IFS= read -r item ; do
   file=part_$(sanitize_filename "$item").stl
   echo "Processing badge: $item to $file"
   # Build the OpenSCAD command
   # -D defines a variable in the script
   # -o specifies the output file name
+  set -x
   /Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD \
       --enable textmetrics --enable lazy-union \
       -D font="\"sd prostreet\"" -D MakerWorld_Customizer_Environment=false \
       -D magnet_depth=2 -D plate_labels_1="\"$item\"" \
-      -o $file MagneticLabelMaker.scad || { echo "failed"; exit 1; }
+      $EXTRA \
+      -o $PARAMETERS/$file MagneticLabelMaker.scad || { echo "failed"; exit 1; }
+  set +x
 done < $INPUT
