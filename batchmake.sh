@@ -32,11 +32,8 @@ if [[ -z "$INPUT" ]]; then
 fi
 
 case $PARAMETERS in
-    tight)
-        EXTRA="-D magnet_cylinder_top_clearance=0.05 -D magnet_cylinder_bottom_clearance=0.15"
-        ;;
-    tighter)
-        EXTRA="-D magnet_cylinder_top_clearance=0.0 -D magnet_cylinder_bottom_clearance=0.1"
+    loadout)
+        EXTRA="-D magnet_diameter=6 -D magnet_cylinder_top_clearance=0.0 -D magnet_cylinder_bottom_clearance=0.1 -D magnet_center_hole_width=100"
         ;;
     "")
         ;;
@@ -85,12 +82,9 @@ while IFS= read -r item ; do
   # Build the OpenSCAD command
   # -D defines a variable in the script
   # -o specifies the output file name
-  set -x
   /Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD \
       --enable textmetrics --enable lazy-union \
       -D font="\"sd prostreet\"" -D MakerWorld_Customizer_Environment=false \
-      -D magnet_depth=2 -D plate_labels_1="\"$item\"" \
-      $EXTRA \
+      -D plate_labels_1="\"$item\"" $EXTRA \
       -o $PARAMETERS/$file MagneticLabelMaker.scad || { echo "failed"; exit 1; }
-  set +x
 done < $INPUT

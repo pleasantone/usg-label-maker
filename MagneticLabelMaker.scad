@@ -86,10 +86,10 @@ text_color = "#FFFFFF"; // color
 // Should the base follow an outline of the letters? (see notes!)
 base_outline = 0; // [0: Standard base, 1: Follow letter shapes]
 
-// Rounded corner radius in mm (default 2mm)
-base_radius = 2; // [1:10]
+// Rounded corner radius in mm
+base_radius = 2;
 
-// Total depth in mm of badge and base in mm (default 5mm)
+// Total depth in mm of badge and base in mm
 depth = 5;
 
 // Diameter of the magnet hole in mm
@@ -101,21 +101,33 @@ magnet_depth = 3;
 // Fully encapsulated magnets or open at the base. If encapsulate, pause the print at the top of the hole to insert magnets
 encapsulate_magnets = false;
 
+// place magnet holes in mm from inside edge
+magnet_edge_inboard = 10;
+
+// minimum separation in mm between outer holes before dropping to one hole
+magnet_minimum_separation = 2;
+
+// if piece is >mm wide, add a center hole
+magnet_center_hole_width = 60;
+
 /* [Printer dimensions] */
 // printer bed size (BambuLab A1/P1/X1 are approximately 255mmx255mm)
 bed_size=[255, 255];
 
 /* [Advanced] */
-magnet_depth_clearance = 0.1; // Depth clearance for magnet
-magnet_cylinder_top_clearance = 0.1; // Top of magnet cutout clearnace
-magnet_cylinder_bottom_clearance = 0.2; // Bottom of magnet cutout clearance
-magnet_depth_offset = encapsulate_magnets ? magnet_depth_clearance * 2 : 0;
+// Extra padding for magnet cut on Z axis
+magnet_depth_clearance = 0.1;
+// Extra padding for magnet at top of cut
+magnet_topcyl_clearance = 0.1;
+// Extra padding for magnet at bottom of cut
+magnet_bottomcyl_clearance = 0.2;
 
+// lower Z bounds of magnet cut
+magnet_depth_offset = encapsulate_magnets ? magnet_depth_clearance * 2 : 0;
 magnet_hole_bore = magnet_depth + magnet_depth_clearance;
 magnet_hole_top = magnet_hole_bore + magnet_depth_offset;
-
-// If the piece is less than X mm wide, create only a single magnet hole, otherwise create 3 holes
-single_magnet_width = 36;
+// the .1 is slop so we can get enough material around the magnet
+magnet_wrap_diameter = magnet_diameter + magnet_bottomcyl_clearance; // + 0.042;
 
 // Extra Y gap between labels in case they smush together
 label_y_extra_spacing = 0;
@@ -195,16 +207,17 @@ function gap(label_group) =
 
 // the y length of a label
 function label_len_y(string) =
-    ceil(textmetrics(string, size = font_size, font = font,
-         halign = "center", valign = "center", $fn = 64)["size"][1]) +
-         base_radius;
+    ceil(max(magnet_wrap_diameter,
+             textmetrics(string, size = font_size, font = font,
+                         halign = "center", valign = "center",
+                         $fn = 64)["size"][1]) + base_radius);
 
 // make the base part of an object
 module make_base(string = $string) {
     tmetrics = textmetrics(string, size = font_size, font = font,
                            halign = "center", valign = "center", $fn=64);
     base_width = tmetrics["size"][0];
-    base_height = tmetrics["size"][1];
+    base_height = max(tmetrics["size"][1], magnet_wrap_diameter);
 
     assert(base_width + base_radius < bed_size.x,
            str("ERROR: Not enough X-axis plate space to print ", string, ", decrease label length or font size"));
@@ -223,20 +236,29 @@ module make_base(string = $string) {
                 cylinder(h=1, r=base_radius);
             }
 
-        // cut out center magnet hole (difference)
-        translate([0, 0, magnet_depth_offset]) cut_magnet();
-        // cut out two additional magnet holes if needed
-        if (base_width + base_radius > single_magnet_width) {
-            translate([-base_width/2 + 10, 0, magnet_depth_offset]) cut_magnet();
-            translate([base_width/2 - 10, 0, magnet_depth_offset]) cut_magnet();
+        magnet_separation = base_width - ((magnet_edge_inboard + magnet_diameter + magnet_bottomcyl_clearance) * 2);
+
+        // do we have enough space for the two end holes?
+        // if not, just do center hole
+        if (magnet_separation > magnet_minimum_separation) {
+            translate([-base_width/2 + magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
+            translate([base_width/2 - magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
+            if ((base_width > magnet_center_hole_width) &&
+                (magnet_separation > (magnet_minimum_separation * 4))) {
+                // cut out center magnet hole (difference)
+                translate([0, 0, magnet_depth_offset]) cut_magnet();
+            }
+        } else {
+            // only cut out center magnet hole
+            translate([0, 0, magnet_depth_offset]) cut_magnet();
         }
     }
 }
 
 module cut_magnet() {
     cylinder(magnet_hole_bore,
-             magnet_diameter / 2 + magnet_cylinder_bottom_clearance,
-             magnet_diameter / 2 + magnet_cylinder_top_clearance,
+             magnet_diameter / 2 + magnet_bottomcyl_clearance,
+             magnet_diameter / 2 + magnet_topcyl_clearance,
              center=false);
 }
 
