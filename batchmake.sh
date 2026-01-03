@@ -3,6 +3,7 @@
 PARAMETERS=""
 INPUT=""
 EXTRA=""
+FONT='FONTSPRING DEMO \\- Avionic Wide Oblique Black'
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -16,7 +17,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             if [[ -z "$INPUT" ]]; then
-                echo foo
                 INPUT="$1"
             fi
             shift
@@ -34,6 +34,7 @@ fi
 case $PARAMETERS in
     loadout)
         EXTRA="-D magnet_diameter=6 -D magnet_cylinder_top_clearance=0.0 -D magnet_cylinder_bottom_clearance=0.1 -D magnet_center_hole_width=100"
+        FONT="sd prostreet"
         ;;
     "")
         ;;
@@ -71,12 +72,17 @@ sanitize_filename() {
 }
 
 if [[ -n "$PARAMETERS" ]]; then
-    test -d $PARAMETERS || mkdir $PARAMETERS
+  test -d $PARAMETERS || mkdir $PARAMETERS
 else
-    PARAMETERS=.
+  PARAMETERS=.
 fi
 
 while IFS= read -r item ; do
+  # ignore empty or lines starting with #
+  case "$item" in
+    ''|\#*) continue ;;
+  esac
+
   file=part_$(sanitize_filename "$item").stl
   echo "Processing badge: $item to $file"
   # Build the OpenSCAD command
@@ -84,7 +90,9 @@ while IFS= read -r item ; do
   # -o specifies the output file name
   /Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD \
       --enable textmetrics --enable lazy-union \
-      -D font="\"sd prostreet\"" -D MakerWorld_Customizer_Environment=false \
-      -D plate_labels_1="\"$item\"" $EXTRA \
+      -D MakerWorld_Customizer_Environment=false \
+      -D plate_labels_1="\"$item\"" \
+      -D font="\"$FONT\"" \
+      $EXTRA \
       -o $PARAMETERS/$file MagneticLabelMaker.scad || { echo "failed"; exit 1; }
 done < $INPUT
