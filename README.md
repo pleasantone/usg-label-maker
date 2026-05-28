@@ -76,24 +76,26 @@ You can use any TTF font you want. You can either copy the font
 file into the same directory as the .scad file, or install it in
 your system fonts.
 
-The font that I use came from Fontspring and is their [Avionic Wide
-Oblique Black](https://www.fontspring.com/fonts/grype-type/avionic).
+The default local font is **sd prostreet**, which works well and is
+freely available.
 
-In the sample code, I have referred to their Demo license copy so
-you can easily test, obviously you should either change fonts or
-buy a personal license should you use this for a finished project
-or commercially.
+As a backup, Fontspring's [Avionic Wide Oblique
+Black](https://www.fontspring.com/fonts/grype-type/avionic) is the
+closest match to the actual USG font. The sample pictures were
+taken with their Demo license copy so you can easily test --
+obviously you should either change fonts or buy a personal license
+should you use this for a finished project or commercially.
 
 ## Interesting Parameters/Variables
 
 See the .scad file for parameters you can change, but briefly:
 
-- *local_openscad*: Running on MakerWorld or locally?
-- *labels*: label names, each delimited with "|" like "SOCKETS|RATCHETS|ALLEN WRENCHES”
-- *font*: font to use
-- *letter_size*: 8mm default
-- *label depth*: 5mm default -- includes raised letters
-- *base_shape*:
+- *MakerWorld_Customizer_Environment*: Running on MakerWorld (true) or locally (false)?
+- *plate_labels_1*..*plate_labels_5*: label names, each delimited with "|" like "SOCKETS|RATCHETS|ALLEN WRENCHES" (only plate_labels_1 is rendered locally)
+- *font*: font to use; defaults follow the environment
+- *font_size*: 8mm default
+- *depth*: 5mm default total badge thickness -- includes raised letters
+- *base_outline*:
      0: default, a rectangle with rounded corners
      1: Flows base shape to follow letter outlines.
         May produce more aesthetic results but can also look

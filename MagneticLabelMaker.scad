@@ -42,12 +42,14 @@ plate_labels_5 = "DON'T TOUCH MY TOOLS";
    The best font available on MakerWorld is Montserrat Extra Bold Italic.
 
    For local operation, where you can use any font you find on the web,
-   Avionic Wide Oblique Black is quite close to the USG font, but any of
-   these are close:
+   the default is sd prostreet. Avionic Wide Oblique Black is the closest
+   match to the actual USG font but is only available as a Fontspring demo
+   download -- use it as a backup if you want the closer look. Any of these
+   work well:
 
-   https://demofont.com/avionic-sans-serif-font/
-   https://www.ffonts.net/sdprostreet-Regular.font
-   https://www.ffonts.net/Concielian-Bold-Semi-Italic.font
+   https://www.ffonts.net/sdprostreet-Regular.font     (default)
+   https://demofont.com/avionic-sans-serif-font/       (backup: closest USG match, demo license)
+   https://www.ffonts.net/Concielian-Bold-Semi-Italic.font  (backup)
 
    Download one or more of them and unpack.
    Install the downloaded font(s) to your system. (On a Mac, double-click the .ttf and install.)
@@ -55,15 +57,18 @@ plate_labels_5 = "DON'T TOUCH MY TOOLS";
    You might need to restart OpenSCAD in order for it to recognize
    newly installed or "used' fonts.
 
-   I used Avionic Wide Oblique Black's demo in the pictures.
+   The sample pictures were taken with Avionic Wide Oblique Black's demo.
 */
 
-// best local OpenSCAD fonts
-// font = "FONTSPRING DEMO \\- Avionic Wide Oblique Black"; // font
-// font = "sd prostreet"; // font
-
-// best MakerWorld font is Montserrat ExtraBold Italic
-font = "Montserrat:style=ExtraBold Italic"; //font
+// Default font follows the environment: Montserrat on MakerWorld (only fonts in
+// their library are available), sd prostreet locally. Override in the customizer
+// or via OpenSCAD -D for batch runs.
+// Backup local options:
+//   "FONTSPRING DEMO \\- Avionic Wide Oblique Black" -- closest USG match (demo license)
+//   "Concielian:style=Bold Semi Italic"
+font = MakerWorld_Customizer_Environment
+    ? "Montserrat:style=ExtraBold Italic"
+    : "sd prostreet"; //font
 
 // Font size in points
 font_size = 8; // [5:32]
@@ -156,10 +161,8 @@ module mw_plate_4(labels=plate_labels_4) mw_make_labels(labels);
 module mw_plate_5(labels=plate_labels_5) mw_make_labels(labels);
 
 module mw_make_labels(labels) {
-    if (len(labels)) {
-        color(base_color) iterate_labels(labels) make_base();
-        color(text_color) iterate_labels(labels) make_text();
-    }
+    color(base_color) iterate_labels(labels) make_base();
+    color(text_color) iterate_labels(labels) make_text();
 }
 
 /* Local OpenSCAD:
@@ -188,86 +191,107 @@ if (!MakerWorld_Customizer_Environment) {
 
 /* ------------------------ */
 
+// Split + clean the label list, precompute textmetrics once per label, then
+// stamp out each child with $string and $tmetrics bound so make_base/make_text
+// can reuse the same metrics without re-measuring.
 module iterate_labels(labels) {
-    label_group = is_string(labels) ? split("|", labels) : labels;
-    offset = gap(label_group) + label_y_extra_spacing;
+    raw = is_string(labels) ? split("|", labels) : labels;
+    label_group = [for (l = raw) if (len(l) > 0) l];
 
-    for (index = [0: len(label_group)-1]) {
-        label = label_group[index];
-        y_start = (bed_size.y / -2) + offset * index;
-        assert(y_start < (bed_size.y / 2 - offset * 2),
-               str("ERROR: Not enough Y-axis plate space to print " , label, "--decrease label count or font size"));
-        translate([0, y_start, 0]) let($string = label) children();
-    }
-}
+    if (len(label_group) > 0) {
+        all_metrics = [
+            for (l = label_group)
+                textmetrics(l, size = font_size, font = font,
+                            halign = "center", valign = "center")
+        ];
+        slot = max([
+            for (m = all_metrics)
+                ceil(max(magnet_wrap_diameter, m["size"][1]) + base_radius)
+        ]) + label_y_extra_spacing;
 
-// calculate the maximum height of any of our labels
-function gap(label_group) =
-    max([for(label = label_group) label_len_y(label)]) + base_radius;
-
-// the y length of a label
-function label_len_y(string) =
-    ceil(max(magnet_wrap_diameter,
-             textmetrics(string, size = font_size, font = font,
-                         halign = "center", valign = "center",
-                         $fn = 64)["size"][1]) + base_radius);
-
-// make the base part of an object
-module make_base(string = $string) {
-    tmetrics = textmetrics(string, size = font_size, font = font,
-                           halign = "center", valign = "center", $fn=64);
-    base_width = tmetrics["size"][0];
-    base_height = max(tmetrics["size"][1], magnet_wrap_diameter);
-
-    assert(base_width + base_radius < bed_size.x,
-           str("ERROR: Not enough X-axis plate space to print ", string, ", decrease label length or font size"));
-
-    // make the base
-    difference() {
-        hull() // wrap all words
-            minkowski() { // chamfer corners and flow letters
-                linear_extrude(base_depth, center=false) {
-                    if (base_outline)
-                        text(string, size=font_size, font=font,
-                             halign="center", valign="center", $fn = 64);
-                    else
-                        square([base_width, base_height], center=true);
-                }
-                cylinder(h=1, r=base_radius);
-            }
-
-        magnet_separation = base_width - ((magnet_edge_inboard + magnet_diameter + magnet_bottomcyl_clearance) * 2);
-
-        // do we have enough space for the two end holes?
-        // if not, just do center hole
-        if (magnet_separation > magnet_minimum_separation) {
-            translate([-base_width/2 + magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
-            translate([base_width/2 - magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
-            if ((base_width > magnet_center_hole_width) &&
-                (magnet_separation > (magnet_minimum_separation * 4))) {
-                // cut out center magnet hole (difference)
-                translate([0, 0, magnet_depth_offset]) cut_magnet();
-            }
-        } else {
-            // only cut out center magnet hole
-            translate([0, 0, magnet_depth_offset]) cut_magnet();
+        for (index = [0 : len(label_group) - 1]) {
+            label = label_group[index];
+            // center labels inside their Y-axis slot, stacked from -Y to +Y
+            y_center = -bed_size.y / 2 + slot * (index + 0.5);
+            assert(y_center + slot / 2 <= bed_size.y / 2,
+                   str("ERROR: Not enough Y-axis plate space to print ", label,
+                       " -- decrease label count or font size"));
+            translate([0, y_center, 0])
+                let($string = label, $tmetrics = all_metrics[index])
+                    children();
         }
     }
 }
 
+// $string and $tmetrics are bound by iterate_labels — defaulted here so the
+// modules can also be called standalone for debugging.
+module make_base(string = $string, tmetrics = $tmetrics) {
+    base_width = tmetrics["size"][0];
+    base_height = max(tmetrics["size"][1], magnet_wrap_diameter);
+
+    // minkowski with a cylinder of base_radius adds base_radius on every side,
+    // so the actual base extends base_width + 2*base_radius on X.
+    assert(base_width + 2 * base_radius < bed_size.x,
+           str("ERROR: Not enough X-axis plate space to print ", string,
+               " -- decrease label length or font size"));
+
+    difference() {
+        hull() // wrap all letter glyphs into a single envelope
+            minkowski() { // chamfer corners (and flow letters when base_outline)
+                linear_extrude(base_depth, center = false) {
+                    if (base_outline)
+                        text(string, size = font_size, font = font,
+                             halign = "center", valign = "center");
+                    else
+                        square([base_width, base_height], center = true);
+                }
+                cylinder(h = 1, r = base_radius);
+            }
+        place_magnet_holes(base_width);
+    }
+}
+
+// Drills magnet pockets out of the base. Two end holes when there's room for
+// them, otherwise a single center hole; a third center hole is added on wide
+// labels when the end holes leave a comfortable middle gap.
+module place_magnet_holes(base_width) {
+    magnet_outer_radius = magnet_diameter / 2 + magnet_bottomcyl_clearance;
+    // actual gap between the outer edges of the two end holes
+    magnet_gap = base_width - 2 * magnet_edge_inboard - 2 * magnet_outer_radius;
+
+    if (magnet_gap > magnet_minimum_separation) {
+        translate([-base_width / 2 + magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
+        translate([ base_width / 2 - magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
+        if (base_width > magnet_center_hole_width &&
+            magnet_gap > magnet_minimum_separation * 4) {
+            translate([0, 0, magnet_depth_offset]) cut_magnet();
+        }
+    } else {
+        translate([0, 0, magnet_depth_offset]) cut_magnet();
+    }
+}
+
+// Slightly tapered cylinder: wider at the bottom (bottomcyl_clearance) than the
+// top (topcyl_clearance) so a magnet dropped in from the open base seats firmly
+// against the cap. Do not "fix" by swapping — direction is intentional.
 module cut_magnet() {
-    cylinder(magnet_hole_bore,
-             magnet_diameter / 2 + magnet_bottomcyl_clearance,
-             magnet_diameter / 2 + magnet_topcyl_clearance,
-             center=false);
+    cylinder(h = magnet_hole_bore,
+             r1 = magnet_diameter / 2 + magnet_bottomcyl_clearance,
+             r2 = magnet_diameter / 2 + magnet_topcyl_clearance,
+             center = false,
+             $fn = 64);
 }
 
 // Make the text part of an object -- will position on top of base.
 module make_text(string = $string) {
+    assert(depth > base_depth,
+           str("ERROR: depth (", depth, "mm) must exceed base_depth (",
+               base_depth, "mm) so raised text has positive height. ",
+               "Increase depth or reduce magnet_depth."));
     translate([0, 0, base_depth])
-        linear_extrude(depth - base_depth, center=false)
+        linear_extrude(depth - base_depth, center = false)
             text(string, size = font_size, font = font,
-                 halign = "center", valign = "center", $fn = 64);
+                 halign = "center", valign = "center");
 }
 
 // extract a substring from a string
