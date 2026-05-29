@@ -8,6 +8,7 @@ OPENSCAD="${OPENSCAD:-/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD}"
 # Default local font; Avionic Wide Oblique Black is the closest USG match and
 # can be substituted here as a backup: 'FONTSPRING DEMO \\- Avionic Wide Oblique Black'
 FONT='sd prostreet'
+AVIONIC_FONT='FONTSPRING DEMO \\- Avionic Wide Oblique Black'
 PARAMETERS=""
 INPUT=""
 EXTRA=""
@@ -17,7 +18,7 @@ die() { echo "Error: $*" >&2; exit 1; }
 usage() {
     cat >&2 <<EOF
 Usage: $0 [-p|--parameters MODE] <filename>
-  MODE: loadout (smaller magnets + sd prostreet font, outputs to ./loadout/)
+  MODE: loadout (smaller magnets, outputs to ./loadout/)
   Input <filename> contains one badge per line. Blank lines and '#' comments are skipped.
   Override OpenSCAD path with the OPENSCAD environment variable.
 EOF
@@ -50,8 +51,10 @@ done
 case "$PARAMETERS" in
     loadout)
         EXTRA="-D magnet_diameter=6 -D magnet_topcyl_clearance=0.0 -D magnet_bottomcyl_clearance=0.1 -D magnet_center_hole_width=100"
-        FONT="sd prostreet"
+        OUTDIR="loadout"
         ;;
+    avionic)
+        FONT="$AVIONIC_FONT"
     "")
         ;;
     *)
@@ -64,8 +67,7 @@ esac
 [[ -r "$SCAD_FILE" ]] || die "Source file not found: $SCAD_FILE"
 [[ -r "$INPUT" ]]     || die "Input file '$INPUT' is not readable"
 
-if [[ -n "$PARAMETERS" ]]; then
-    OUTDIR="$PARAMETERS"
+if [[ -n "$OUTDIR" ]]; then
     mkdir -p "$OUTDIR"
 else
     OUTDIR="."
