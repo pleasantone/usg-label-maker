@@ -33,6 +33,8 @@ plate_labels_3 = "AUTOMOTIVE TOOLS|OILS|PAINT|BRAKE TOOLS|HAMMERS|SAE WRENCHES|M
 plate_labels_4 = "EXTENSIONS|BREAKER BARS|HEX KEYS|SAE|METRIC|SOCKETS|ELECTRICAL|NO TOUCH|BITS|IMPACT WRENCHES|1/4\" RATCHETS|3/8\" RATCHETS|1/2\" RATCHETS|I WASN'T ASKING TOOL";
 plate_labels_5 = "DON'T TOUCH MY TOOLS";
 
+plate_labels = str(plate_labels_1, "|", plate_labels_2, "|", plate_labels_3, "|", plate_labels_4, "|", plate_labels_5);
+
 /* A note on fonts:
 
    If you are intending to match the US General font, it is non-standard
@@ -119,6 +121,9 @@ magnet_center_hole_width = 60;
 // printer bed size (BambuLab A1/P1/X1 are approximately 255mmx255mm)
 bed_size=[255, 255];
 
+// Wall width in mm of the preview-only plate-edge border (never exported)
+border_thickness = 3;
+
 /* [Advanced] */
 // Extra padding for magnet cut on Z axis
 magnet_depth_clearance = 0.1;
@@ -134,8 +139,8 @@ magnet_hole_top = magnet_hole_bore + magnet_depth_offset;
 // the .1 is slop so we can get enough material around the magnet
 magnet_wrap_diameter = magnet_diameter + magnet_bottomcyl_clearance; // + 0.042;
 
-// Extra Y gap between labels in case they smush together
-label_y_extra_spacing = 0;
+// Safety gap in mm between neighbouring label footprints (applied on both axes)
+label_gap = 1;
 
 /* [ Hidden ] */
 
@@ -180,48 +185,116 @@ module mw_make_labels(labels) {
 
 if (!MakerWorld_Customizer_Environment) {
     color(base_color)
-        iterate_labels(plate_labels_1)
+        iterate_labels(plate_labels)
             make_base(); // all the bases will export as a single object
 
     color(text_color)
-         iterate_labels(plate_labels_1)
+         iterate_labels(plate_labels)
             make_text(); // all the text will export as a single object
 }
+
+// Reference frame around the bed edges. $preview is true only for on-screen
+// preview (F5); it is false during full render and every export (F6, CLI -o,
+// MakerWorld), so this border never becomes part of any STL/3MF.
+if ($preview) plate_border();
 
 
 /* ------------------------ */
 
-// Split + clean the label list, precompute textmetrics once per label, then
-// stamp out each child with $string and $tmetrics bound so make_base/make_text
-// can reuse the same metrics without re-measuring.
+// Pack labels onto the plate. Measure each once, derive a uniform row height
+// from the tallest footprint, then bin-pack widest-first into rows (first-fit
+// decreasing) so the bed fills in both axes instead of a single centered column.
+// $string and $tmetrics are bound per label so make_base/make_text never
+// re-measure.
 module iterate_labels(labels) {
     raw = is_string(labels) ? split("|", labels) : labels;
     label_group = [for (l = raw) if (len(l) > 0) l];
 
     if (len(label_group) > 0) {
-        all_metrics = [
+        metrics = [
             for (l = label_group)
                 textmetrics(l, size = font_size, font = font,
                             halign = "center", valign = "center")
         ];
-        slot = max([
-            for (m = all_metrics)
-                ceil(max(magnet_wrap_diameter, m["size"][1]) + base_radius)
-        ]) + label_y_extra_spacing;
 
-        for (index = [0 : len(label_group) - 1]) {
-            label = label_group[index];
-            // center labels inside their Y-axis slot, stacked from -Y to +Y
-            y_center = -bed_size.y / 2 + slot * (index + 0.5);
-            assert(y_center + slot / 2 <= bed_size.y / 2,
-                   str("ERROR: Not enough Y-axis plate space to print ", label,
-                       " -- decrease label count or font size"));
-            translate([0, y_center, 0])
-                let($string = label, $tmetrics = all_metrics[index])
+        // minkowski adds base_radius on every side, so the real footprint is the
+        // text box grown by 2*base_radius in each axis; label_gap then keeps
+        // neighbouring bases from fusing on the plate.
+        widths  = [for (m = metrics) m["size"][0] + 2 * base_radius];
+        heights = [for (m = metrics)
+                       max(magnet_wrap_diameter, m["size"][1]) + 2 * base_radius];
+        slot = max(heights) + label_gap;
+
+        // widest-first first-fit-decreasing => fewest rows => densest packing
+        order = sorted_desc(widths);
+        ord_widths = [for (i = order) widths[i]];
+        packed = pack(ord_widths, label_gap, bed_size.x);
+        place  = packed[0];   // [row, x_left] for each packed item
+        rows   = packed[1];   // total consumed width of each row
+        row_count = len(rows);
+
+        assert(row_count * slot <= bed_size.y,
+               str("ERROR: Not enough Y-axis plate space for ", len(label_group),
+                   " labels (needs ", row_count, " rows) -- decrease label count ",
+                   "or font size, or split across plates"));
+
+        for (k = [0 : len(order) - 1]) {
+            idx    = order[k];
+            label  = label_group[idx];
+            r      = place[k][0];
+            x_left = place[k][1];
+            w      = ord_widths[k];
+
+            // centre each row horizontally; centre the whole block on the bed
+            x = -rows[r] / 2 + x_left + w / 2;
+            y = (row_count * slot) / 2 - slot * (r + 0.5);
+
+            translate([x, y, 0])
+                let($string = label, $tmetrics = metrics[idx])
                     children();
         }
     }
 }
+
+/* ---- Shelf bin-packing helpers (first-fit decreasing) ------------------- */
+
+// Indices of `w` ordered by descending value (selection sort; label counts are
+// small, so O(n^2) is fine).
+function sorted_desc(w, rem = undef, acc = []) =
+    let(r = is_undef(rem) ? [for (i = [0 : len(w) - 1]) i] : rem)
+    len(r) == 0 ? acc :
+    let(b = max_index(w, r),
+        chosen = r[b],
+        rest = [for (j = [0 : len(r) - 1]) if (j != b) r[j]])
+    sorted_desc(w, rest, concat(acc, [chosen]));
+
+// Position within `rem` of the entry indexing the largest width in `w`.
+function max_index(w, rem, i = 0, bi = 0) =
+    i >= len(rem) ? bi
+    : max_index(w, rem, i + 1, w[rem[i]] > w[rem[bi]] ? i : bi);
+
+// Copy of vector `v` with element `i` replaced by `x`.
+function vec_set(v, i, x) = [for (j = [0 : len(v) - 1]) j == i ? x : v[j]];
+
+// First row that can still take width `w` (with a leading gap), or len(rows) to
+// signal "open a new row".
+function first_fit(rows, w, gap, bedx, r = 0) =
+    r >= len(rows) ? len(rows)
+    : (rows[r] + gap + w <= bedx ? r : first_fit(rows, w, gap, bedx, r + 1));
+
+// Greedy FFD packer. Returns [placements, rows]:
+//   placements[k] = [row, x_left] for the k-th (already width-sorted) item
+//   rows[r]       = total consumed width of row r (widths + internal gaps)
+function pack(widths, gap, bedx, i = 0, rows = [], place = []) =
+    i >= len(widths) ? [place, rows] :
+    let(w = widths[i],
+        r = first_fit(rows, w, gap, bedx),
+        is_new = r >= len(rows),
+        x_left = is_new ? 0 : rows[r] + gap,
+        used = x_left + w,
+        rows2 = is_new ? concat(rows, [used]) : vec_set(rows, r, used),
+        place2 = concat(place, [[r, x_left]]))
+    pack(widths, gap, bedx, i + 1, rows2, place2);
 
 // $string and $tmetrics are bound by iterate_labels — defaulted here so the
 // modules can also be called standalone for debugging.
@@ -292,6 +365,20 @@ module make_text(string = $string) {
         linear_extrude(depth - base_depth, center = false)
             text(string, size = font_size, font = font,
                  halign = "center", valign = "center");
+}
+
+// Square ring hugging the bed edges, centered on the origin like the labels.
+// Preview-only reference (see the $preview guard at top level) -- excluded from
+// exports, so it carries no magnet pockets and matches the base height only as a
+// visual cue.
+module plate_border() {
+    color(base_color)
+        linear_extrude(base_depth, center = false)
+            difference() {
+                square(bed_size, center = true);
+                square([bed_size.x - 2 * border_thickness,
+                        bed_size.y - 2 * border_thickness], center = true);
+            }
 }
 
 // extract a substring from a string

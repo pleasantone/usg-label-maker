@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-05-28
+## [Unreleased] — 2026-05-31
 
 ### Fixed
 
@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Default font now follows the environment.** `font` evaluates to `"Montserrat:style=ExtraBold Italic"` when running under MakerWorld and `"sd prostreet"` locally, instead of requiring a manual swap of commented lines. `batchmake.sh` mirrors the same local default. Avionic Wide Oblique Black (Fontspring demo) is now documented as the backup option for the closest US General match. Customizer and `-D font=...` overrides still take precedence.
 - **`textmetrics` is computed once per label.** `iterate_labels` precomputes metrics for all labels up front and propagates them via the special variable `$tmetrics`. `make_base` consumes that instead of re-measuring, eliminating roughly 3× redundant calls per plate.
 - **Magnet hole placement extracted to `place_magnet_holes(base_width)`.** The two-vs-one-vs-three hole decision is now a standalone module with clearer naming (`magnet_outer_radius`, `magnet_gap`) instead of being nested inside `make_base`'s `difference()`.
+- **Labels now bin-pack into a centered grid instead of a single centered column.** `iterate_labels` measures each label's full footprint (text box + `2 * base_radius` per axis), sorts widest-first, and packs them into rows via first-fit-decreasing (`sorted_desc` / `first_fit` / `pack` helpers), filling the bed on both axes. Each row is centered horizontally and the whole block is centered on the bed origin, dramatically increasing labels per plate. The Y-space assertion now reports the required row count.
+- **`label_y_extra_spacing` replaced by `label_gap`.** A single safety-gap parameter (default `1`mm) applied on **both** axes so neighbouring footprints never fuse during packing.
+- **Local path renders all five plate lists concatenated.** `plate_labels` joins `plate_labels_1`..`5` with `|`, so a local run packs every label onto one plate (subject to the bed-space assertion) rather than only `plate_labels_1`.
 - **Removed dead `$fn = 64` overrides on `textmetrics()` calls.** `textmetrics` returns size data and doesn't use `$fn`. Applied `$fn = 64` to `cut_magnet` instead, where it actually produces rounder magnet holes.
 
 ### Added
@@ -36,3 +39,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Comments documenting non-obvious patterns: the `$string` / `$tmetrics` special-variable binding in `iterate_labels`, the intentionally asymmetric cone in `cut_magnet` (wider at the bottom so magnets seat against the cap), and the minkowski-adds-on-both-sides reasoning behind the X assertion.
 - **`batchmake.sh` hardening.** `set -euo pipefail`, errors emitted to stderr, `[N/total]` progress indicator, `-h`/`--help` flag, `OPENSCAD` env var override for the binary path, and comments marking the intentionally-unquoted `$EXTRA` word-splitting.
 - `CLAUDE.md` with architecture notes and build/batch commands for future Claude Code sessions.
+- **Preview-only plate-edge border.** `plate_border()` draws a square frame at the bed edges (`border_thickness`, default `3`mm) so the printable area is visible while arranging labels. Gated by `if ($preview)`, so it appears in on-screen preview but is excluded from every render/export (STL/3MF).

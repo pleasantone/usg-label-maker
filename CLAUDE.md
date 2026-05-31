@@ -28,12 +28,17 @@ Toggle: `MakerWorld_Customizer_Environment` at the top of the `.scad` file. `fon
 
 ### Rendering pipeline
 
-`iterate_labels(labels)` is the single entry point for both environments:
+`iterate_labels(labels)` is the single entry point for both environments. It **2D bin-packs** labels into a centered grid (not a single centered column), filling the bed on both axes:
 
 1. Splits the `|`-delimited string, filters empty entries.
 2. Calls `textmetrics()` **once per label** and caches results.
-3. Computes a uniform Y-axis slot = `max(label height, magnet_wrap_diameter) + base_radius` over all labels.
-4. For each label, translates to a centered Y position and invokes `children()` with `$string` and `$tmetrics` bound as special variables.
+3. Computes each label's **full footprint** — text box grown by `2 * base_radius` per axis (the minkowski adds `base_radius` on every side) — plus a `label_gap` safety margin so neighbouring bases never fuse.
+4. Uniform row height (slot) = tallest footprint + `label_gap`.
+5. Sorts labels widest-first and packs them into rows via **first-fit-decreasing** (`pack()` / `first_fit()`): fewest rows = densest fill. Each row is centered horizontally and the whole block is centered on the bed origin.
+6. Asserts the row count fits `bed_size.y` (hard stop — reduce count / font size or split plates).
+7. For each label, translates to its `[x, y]` and invokes `children()` with `$string` and `$tmetrics` bound as special variables.
+
+The packing is done with pure recursive helpers (`sorted_desc`, `max_index`, `vec_set`, `first_fit`, `pack`) because OpenSCAD has no mutable loop state. Both the bases pass and the text pass call `iterate_labels` with the same labels/params, so the deterministic sort+pack keeps base and text aligned. Packing assumes label width ≈ text bounding box, so `base_outline=1` still packs by the box, not the glyph silhouette.
 
 `make_base()` and `make_text()` consume `$string` / `$tmetrics` — never re-measure. If you add another per-label module, follow the same pattern. Both modules also accept the values as defaulted args so they remain callable standalone for debugging.
 
@@ -55,6 +60,10 @@ Toggle: `MakerWorld_Customizer_Environment` at the top of the `.scad` file. `fon
 - **Local:** top-level `if (!MakerWorld_Customizer_Environment)` block renders only `plate_labels_1`, emitting bases and text as separate top-level groups so `lazy-union` keeps them as distinct object parts.
 
 Both paths must funnel through `iterate_labels` → `make_base` / `make_text` so behavior stays in sync.
+
+### Preview-only plate border
+
+`plate_border()` draws a square ring at the bed edges (`bed_size`, wall width `border_thickness`) as a visual guide. It's gated by `if ($preview)` at top level: `$preview` is true only for on-screen preview (F5/GUI) and false during full render and every export (F6, CLI `-o`, MakerWorld), so the frame **never** enters an STL/3MF. Use the same `$preview` guard for any future reference-only geometry — don't rely on the `%` modifier, which lazy-union can still surface as a stray object part.
 
 ## Fonts
 
