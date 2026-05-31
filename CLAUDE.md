@@ -28,17 +28,18 @@ Toggle: `MakerWorld_Customizer_Environment` at the top of the `.scad` file. `fon
 
 ### Rendering pipeline
 
-`iterate_labels(labels)` is the single entry point for both environments. It **2D bin-packs** labels into a centered grid (not a single centered column), filling the bed on both axes:
+`iterate_labels(labels)` is the single entry point for both environments. It **2D bin-packs** labels into a centered grid (not a single centered column), routing around configurable exclusion zones:
 
 1. Splits the `|`-delimited string, filters empty entries.
 2. Calls `textmetrics()` **once per label** and caches results.
 3. Computes each label's **full footprint** — text box grown by `2 * base_radius` per axis (the minkowski adds `base_radius` on every side) — plus a `label_gap` safety margin so neighbouring bases never fuse.
 4. Uniform row height (slot) = tallest footprint + `label_gap`.
-5. Sorts labels widest-first and packs them into rows via **first-fit-decreasing** (`pack()` / `first_fit()`): fewest rows = densest fill. Each row is centered horizontally and the whole block is centered on the bed origin.
-6. Asserts the row count fits `bed_size.y` (hard stop — reduce count / font size or split plates).
-7. For each label, translates to its `[x, y]` and invokes `children()` with `$string` and `$tmetrics` bound as special variables.
+5. Lays a **centered grid of `floor(bed_y / slot)` row-bands** and carves each band into free X-intervals ("shelves") by subtracting any exclusion zone (inflated by `label_gap`) that intrudes on that band's Y range. A shelf is `[x_min, x_max, y_center]`.
+6. Sorts labels widest-first and packs them into shelves via **first-fit-decreasing** (`pack_shelves()` / `fit_shelf()`). Each shelf's run of labels is centered within its free interval.
+7. Asserts every label was placed; the message lists the unplaced labels (hard stop — reduce count / font size, shrink zones, or split plates). **Note:** because zones reduce usable area, a label set that fit without zones can now overflow.
+8. For each label, translates to its `[x, y]` and invokes `children()` with `$string` and `$tmetrics` bound as special variables.
 
-The packing is done with pure recursive helpers (`sorted_desc`, `max_index`, `vec_set`, `first_fit`, `pack`) because OpenSCAD has no mutable loop state. Both the bases pass and the text pass call `iterate_labels` with the same labels/params, so the deterministic sort+pack keeps base and text aligned. Packing assumes label width ≈ text bounding box, so `base_outline=1` still packs by the box, not the glyph silhouette.
+Exclusion zones are corner-anchored rectangles built by `corner_rect()` from the `exclude_zone_1/2*` parameters into the `exclusion_zones` list (`[x_min, y_min, x_max, y_max]`, bed-centered coords). The packing is done with pure recursive helpers (`corner_rect`, `inflate`, `band_blockers`, `free_intervals`/`sweep`, `sort_by_lo`, `sorted_desc`, `max_index`, `vec_set`, `fit_shelf`, `pack_shelves`) because OpenSCAD has no mutable loop state. Both the bases pass and the text pass call `iterate_labels` with the same labels/params, so the deterministic sort+pack keeps base and text aligned. The grid is anchored (not re-centered on the used rows), so a light label set clusters toward the top bands. Packing assumes label width ≈ text bounding box, so `base_outline=1` still packs by the box, not the glyph silhouette.
 
 `make_base()` and `make_text()` consume `$string` / `$tmetrics` — never re-measure. If you add another per-label module, follow the same pattern. Both modules also accept the values as defaulted args so they remain callable standalone for debugging.
 
@@ -63,7 +64,7 @@ Both paths must funnel through `iterate_labels` → `make_base` / `make_text` so
 
 ### Preview-only plate border
 
-`plate_border()` draws a square ring at the bed edges (`bed_size`, wall width `border_thickness`) as a visual guide. It's gated by `if ($preview)` at top level: `$preview` is true only for on-screen preview (F5/GUI) and false during full render and every export (F6, CLI `-o`, MakerWorld), so the frame **never** enters an STL/3MF. Use the same `$preview` guard for any future reference-only geometry — don't rely on the `%` modifier, which lazy-union can still surface as a stray object part.
+`plate_border()` draws a square ring at the bed edges (`bed_size`, wall width `border_thickness`) and `plate_exclusions()` overlays the `exclusion_zones` as translucent red slabs — both visual guides. They're gated by a single `if ($preview)` block at top level: `$preview` is true only for on-screen preview (F5/GUI) and false during full render and every export (F6, CLI `-o`, MakerWorld), so neither **ever** enters an STL/3MF. Use the same `$preview` guard for any future reference-only geometry — don't rely on the `%` modifier, which lazy-union can still surface as a stray object part.
 
 ## Fonts
 
