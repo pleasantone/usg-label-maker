@@ -12,6 +12,7 @@ AVIONIC_FONT='FONTSPRING DEMO \\- Avionic Wide Oblique Black'
 PARAMETERS=""
 INPUT=""
 EXTRA=""
+OUTDIR=""
 
 die() { echo "Error: $*" >&2; exit 1; }
 
@@ -55,6 +56,7 @@ case "$PARAMETERS" in
         ;;
     avionic)
         FONT="$AVIONIC_FONT"
+        ;;
     "")
         ;;
     *)

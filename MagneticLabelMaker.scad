@@ -249,7 +249,11 @@ module iterate_labels(labels) {
         // minkowski adds base_radius on every side, so the real footprint is the
         // text box grown by 2*base_radius in each axis; label_gap then keeps
         // neighbouring bases from fusing on the plate.
-        widths  = [for (m = metrics) m["size"][0] + 2 * base_radius];
+        // floor both axes at magnet_wrap_diameter so a narrow label's base can
+        // never be smaller than the magnet pocket it has to hold (matches the
+        // clamp in make_base); base_radius is then added on every side.
+        widths  = [for (m = metrics)
+                       max(magnet_wrap_diameter, m["size"][0]) + 2 * base_radius];
         heights = [for (m = metrics)
                        max(magnet_wrap_diameter, m["size"][1]) + 2 * base_radius];
         slot = max(heights) + label_gap;
@@ -385,7 +389,10 @@ function pack_shelves(widths, shelves, gap, i = 0, used = undef, places = []) =
 // $string and $tmetrics are bound by iterate_labels — defaulted here so the
 // modules can also be called standalone for debugging.
 module make_base(string = $string, tmetrics = $tmetrics) {
-    base_width = tmetrics["size"][0];
+    // clamp both axes to the magnet pocket size so the base never ends up
+    // narrower/shorter than the magnet hole it has to contain (a short label
+    // like "A" would otherwise let the pocket break through the side wall).
+    base_width  = max(tmetrics["size"][0], magnet_wrap_diameter);
     base_height = max(tmetrics["size"][1], magnet_wrap_diameter);
 
     // minkowski with a cylinder of base_radius adds base_radius on every side,

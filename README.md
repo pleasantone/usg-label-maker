@@ -32,7 +32,7 @@ His code was the inspiration for this code.
 
 #### Pros:
 - Nothing to install, just customize, download, and print.
-- Supports generating up to 4 plates at once.
+- Supports generating up to 5 plates at once.
 
 #### Cons:
 
@@ -63,7 +63,7 @@ kind of close, but not fantastic.
 1. Download/install desired fonts (see Getting the Fonts below).
 1. Go to **OpenSCAD > Preferences > Features** and enable lazy-union and text-metrics.
 1. Go to **OpenSCAD > Preferences > Advanced** and set the 3D Rendering backend to **Manifold**.
-1. Download the `.SCAD` file, edit it and set the local\_openscad variable to 1 or true.
+1. Download the `.SCAD` file, edit it and set `MakerWorld_Customizer_Environment` to `false` (it defaults to `true` for the customizer).
 1. Use the OpenSCAD customizer window or edit the source code to set the labels you wish to print. *Labels are delimited with the “|” character.*
 1. If using a different font, set the name of the font in OpenSCAD.
 1.  Do a preview rendering (F5), if it looks good, do a slower full rendering (F6), then Export the output as a .3MF file.
@@ -102,5 +102,19 @@ See the .scad file for parameters you can change, but briefly:
         strange letters with descenders (angled base) and trailing Ls
         (opposite angle). Slower to render but could be very cool.
 
-It will only generate as many labels in the STL as will fit on the
-plate vertically, so you may have to batch your jobs as necessary.
+### Layout, exclusion zones, and the preview border
+
+Labels are 2D bin-packed to fill the bed on both axes, not just stacked in a
+single column. If more labels are requested than fit, rendering stops with an
+assertion that names the labels it couldn't place — reduce the label count or
+`font_size`, shrink the exclusion zones, or split the set across plates.
+
+- *exclude_zone_1* / *exclude_zone_2*: optional rectangular keep-out areas the
+  packer routes around, each anchored to a bed corner via its `_corner` and
+  `_size` ([width, height] mm) parameters. Defaults reserve the Bambu X1C
+  front-left cutter/wipe area and a prime-tower space at the top-right.
+  Enabling zones reduces usable area, so a set that fit without them may
+  overflow.
+- *border_thickness*: width of a red reference frame drawn just outside the bed
+  edges. Together with the translucent red exclusion-zone overlays it appears
+  only in on-screen preview (F5) and is never part of any STL/3MF export.
