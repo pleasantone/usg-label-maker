@@ -6,40 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-05-31
 
-### Fixed
-
-- **X-axis bed assertion underestimated label width.** `make_base` checked `base_width + base_radius < bed_size.x`, but `minkowski` with the corner cylinder adds `base_radius` on **both** sides. Labels could overhang the X edge by up to one `base_radius`. Now uses `base_width + 2 * base_radius`.
-- **First label was half off the back of the bed.** `iterate_labels` placed the first label's center at `y = -bed_size.y / 2`, but labels render with `valign = "center"`. Labels are now centered inside their Y slot (`-bed_size.y / 2 + slot * (index + 0.5)`).
-- **Top-edge Y assertion was overly conservative.** The previous `y_start < bed_size.y / 2 - offset * 2` rejected labels that actually fit. Tightened to `y_center + slot / 2 <= bed_size.y / 2`, recovering roughly 1.5 slots of usable Y per plate.
-- **Magnet-gap calculation overcounted by one full diameter.** `make_base` computed `magnet_separation = base_width - 2 * (magnet_edge_inboard + magnet_diameter + magnet_bottomcyl_clearance)`, treating the diameter as a per-side radius. The actual edge-to-edge gap is `magnet_diameter` larger, so wide labels were falling back to a single center hole when two end holes (and sometimes a third center hole) actually fit. Now correctly uses `magnet_diameter / 2` per side.
-- **Narrow labels let the magnet pocket break through the base wall.** `make_base` floored only the base *height* at `magnet_wrap_diameter`; the *width* used the raw text box, so a short label (e.g. `"A"`) produced a base narrower than its magnet hole. Both axes are now clamped to `magnet_wrap_diameter` in `make_base`, and the packer's footprint computation applies the same clamp so the reserved slot matches the rendered base.
-- **`make_text` silently produced no text when `depth ≤ base_depth`.** Setting `depth` below the magnet-driven minimum gave `linear_extrude` a non-positive height. Added a clear assertion with both values and an actionable hint.
-- **Delimiter-only label strings rendered ghost labels.** `mw_make_labels`'s `if (len(labels))` guard let strings like `"|"` through, which then split into `["", ""]` and produced empty stubs. `iterate_labels` now filters empty entries after splitting and skips the render entirely if nothing remains.
-- **`batchmake.sh` failed to parse at all.** The `avionic)` case clause was missing its `;;` terminator, so `bash` rejected the whole script with a syntax error near `"")` — no preset (not even the default) could run. Added the terminator.
-- **`batchmake.sh` died on `OUTDIR` under `set -u` for the default/avionic presets.** `OUTDIR` was only assigned in the `loadout` branch, so any other invocation hit `[[ -n "$OUTDIR" ]]` with the variable unbound. It is now initialized to empty up front and defaults to `.`.
-- **`batchmake.sh` `loadout` preset overrides were silently no-ops.** The preset passed `-D magnet_cylinder_top_clearance=...` and `-D magnet_cylinder_bottom_clearance=...` but the actual variables are `magnet_topcyl_clearance` and `magnet_bottomcyl_clearance`. Fixed the names so the preset now applies the intended smaller magnet clearances.
-- **`batchmake.sh` mangled labels containing `"`.** Bash's `-D plate_labels_1="\"$item\""` left embedded double-quotes unescaped, producing an unterminated OpenSCAD string (which is why `badges.txt` had `#1/2\" RATCHETS` lines commented out). Backslashes and quotes are now escaped before substitution; labels like `1/2" RATCHETS` render correctly.
-- **`batchmake.sh` dropped the last badge when the input file had no trailing newline.** Classic `while read` gotcha; now uses `|| [[ -n "$item" ]]` to keep the final line.
-- **`batchmake.sh` silently ignored extra positional arguments.** `./batchmake.sh badges.txt extra` accepted and ignored `extra`; it now errors.
-- **`batchmake.sh` failed inside the rendering loop when the OpenSCAD binary or source file was missing.** Pre-flight checks now verify the OpenSCAD binary, source `.scad` file, input file, and output directory writability before the first render.
-- **`batchmake.sh` only worked from the repo root.** `MagneticLabelMaker.scad` was referenced as a relative path; the script now resolves it relative to its own location, so it works from any CWD or via cron.
-- **`batchmake.sh` error in the parameter-set case referenced the wrong variable.** `echo "Error: unknown parameter set $1"` printed whatever `$1` happened to be after argument parsing (usually the input filename). Now prints the actual `$PARAMETERS` value.
-- **`batchmake.sh` `sanitize_filename` could produce empty filenames** for all-symbol labels (e.g. `///` → `part_.stl`), colliding across badges. Now falls back to `unnamed`, collapses runs of hyphens, and maps `/` to `-` instead of stripping it.
-- **README parameter names matched an earlier draft of the code.** Updated to `font_size`, `depth`, `base_outline`, `plate_labels_1`..`5`, and `MakerWorld_Customizer_Environment`.
-
-### Changed
-
-- **Default font now follows the environment.** `font` evaluates to `"Montserrat:style=ExtraBold Italic"` when running under MakerWorld and `"sd prostreet"` locally, instead of requiring a manual swap of commented lines. `batchmake.sh` mirrors the same local default. Avionic Wide Oblique Black (Fontspring demo) is now documented as the backup option for the closest US General match. Customizer and `-D font=...` overrides still take precedence.
-- **`textmetrics` is computed once per label.** `iterate_labels` precomputes metrics for all labels up front and propagates them via the special variable `$tmetrics`. `make_base` consumes that instead of re-measuring, eliminating roughly 3× redundant calls per plate.
-- **Magnet hole placement extracted to `place_magnet_holes(base_width)`.** The two-vs-one-vs-three hole decision is now a standalone module with clearer naming (`magnet_outer_radius`, `magnet_gap`) instead of being nested inside `make_base`'s `difference()`.
-- **Labels now bin-pack into a centered grid instead of a single centered column.** `iterate_labels` measures each label's full footprint (text box clamped to the magnet size + `2 * base_radius` per axis), derives a uniform row height from the tallest footprint, lays a centered grid of row-bands, carves each band into the free X-intervals between exclusion zones ("shelves"), then packs labels widest-first into those shelves via first-fit-decreasing (`sorted_desc` / `fit_shelf` / `pack_shelves` helpers), filling the bed on both axes. Each shelf's run of labels is centered within its free interval and the grid is centered on the bed origin, dramatically increasing labels per plate. The placement assertion lists any labels that couldn't be placed.
-- **`label_y_extra_spacing` replaced by `label_gap`.** A single safety-gap parameter (default `1`mm) applied on **both** axes so neighbouring footprints never fuse during packing.
-- **Removed dead `$fn = 64` overrides on `textmetrics()` calls.** `textmetrics` returns size data and doesn't use `$fn`. Applied `$fn = 64` to `cut_magnet` instead, where it actually produces rounder magnet holes.
+Complete rewrite of the original single-label remix into a batch/customizer
+generator. Summary of the current behavior:
 
 ### Added
 
-- Comments documenting non-obvious patterns: the `$string` / `$tmetrics` special-variable binding in `iterate_labels`, the intentionally asymmetric cone in `cut_magnet` (wider at the bottom so magnets seat against the cap), and the minkowski-adds-on-both-sides reasoning behind the X assertion.
-- **`batchmake.sh` hardening.** `set -euo pipefail`, errors emitted to stderr, `[N/total]` progress indicator, `-h`/`--help` flag, `OPENSCAD` env var override for the binary path, and comments marking the intentionally-unquoted `$EXTRA` word-splitting.
-- `CLAUDE.md` with architecture notes and build/batch commands for future Claude Code sessions.
-- **Preview-only plate-edge border.** `plate_border()` draws a square frame just outside the bed edges (inner edge at `bed_size`, extending `border_thickness` — default `3`mm — beyond, so it consumes no printable area) to make the bed boundary visible while arranging labels. Gated by `if ($preview)`, so it appears in on-screen preview but is excluded from every render/export (STL/3MF).
-- **Configurable exclusion zones.** Two corner-anchored keep-out rectangles (`exclude_zone_1/2`, with `_corner` and `_size` parameters) that labels are packed around. Defaults reserve the Bambu X1C front-left cutter/wipe area (18×28mm, left-bottom) and a 55x55 prime-tower space (right-top). The packer now lays a centered grid of row-bands, carves each band into the free X-intervals left between the zones (inflated by `label_gap` for clearance), and bin-packs labels into those shelves; the placement assertion lists any labels that couldn't be placed. `plate_exclusions()` overlays the zones in preview (translucent red), excluded from exports via the same `$preview` guard as the border. Note: enabling zones reduces usable area, so a label set that fit without zones may overflow (the placement assertion names the labels that didn't fit).
+- **2D bin-packing layout.** `iterate_labels` measures each label once, grows its
+  text box by `2 * base_radius` per axis (floored at `magnet_wrap_diameter` so
+  the base never shrinks below its magnet pocket), then lays a centered grid of
+  uniform-height row-bands and packs labels widest-first (first-fit decreasing)
+  into the free X-intervals of each band. Fills the bed on both axes; the
+  placement assertion names any labels that couldn't be placed.
+- **Configurable exclusion zones.** Two corner-anchored keep-out rectangles
+  (`exclude_zone_1/2`, each with `_corner` and `_size`) that the packer routes
+  around — defaults reserve the Bambu X1C front-left cutter/wipe area
+  (18×28mm) and a prime-tower space (55×55mm). Zones reduce usable area, so a
+  set that fit without them may overflow.
+- **Preview-only reference geometry.** `plate_border()` frames the bed just
+  outside its edges (`border_thickness`, default 3mm) and `plate_exclusions()`
+  overlays the keep-out zones in translucent red. Both are gated by `$preview`,
+  so they appear in on-screen preview (F5) but never enter any STL/3MF export.
+- **Hardened `batchmake.sh`.** One STL per badge from a newline-delimited list
+  (blank/`#` lines skipped), `set -euo pipefail`, pre-flight checks (binary,
+  source, input, output dir), `[N/total]` progress, `-h`/`--help`, `OPENSCAD`
+  env override, a `loadout` preset (smaller magnets → `./loadout/`), label
+  escaping for `"`/`\`, and filename sanitization with an `unnamed` fallback.
+- `CLAUDE.md` with architecture notes and build/batch commands.
+
+### Changed
+
+- **Default font follows the environment** — `"Montserrat:style=ExtraBold
+  Italic"` on MakerWorld, `"sd prostreet"` locally (mirrored by `batchmake.sh`);
+  Avionic Wide Oblique Black documented as the closest-USG-match backup.
+  Customizer and `-D font=...` overrides still take precedence.
+- **`textmetrics` computed once per label** and propagated via `$tmetrics`, so
+  `make_base`/`make_text` never re-measure.
+- **Magnet placement extracted to `place_magnet_holes()`** — the
+  two-vs-one-vs-three-hole decision, with edge-to-edge gap math that correctly
+  treats `magnet_diameter / 2` as the per-side radius.
+- **Single `label_gap` safety margin** (default 1mm, both axes) replaces the
+  old `label_y_extra_spacing`.
+
+### Fixed
+
+- **Bed-fit math.** The X assertion now accounts for `minkowski` adding
+  `base_radius` on **both** sides (`base_width + 2 * base_radius`), and base
+  width/height are both floored at `magnet_wrap_diameter` so a short label
+  (e.g. `"A"`) can't let its magnet pocket break through the wall.
+- **`make_text` asserts `depth > base_depth`** instead of silently emitting no
+  text when `depth` falls below the magnet-driven minimum.
+- **Delimiter-only strings** like `"|"` no longer render ghost labels —
+  `iterate_labels` filters empty entries and skips an otherwise-empty render.
+- **`batchmake.sh` robustness:** parses correctly (the `avionic` case had a
+  missing `;;`), no longer trips `set -u` on `OUTDIR`, keeps the last badge when
+  the file lacks a trailing newline, errors on unknown options / extra
+  arguments / unknown presets, resolves the `.scad` path relative to itself
+  (works from any CWD), and applies the `loadout` preset's real variable names.
+- **README** parameter names and instructions match the current code (`font_size`,
+  `depth`, `base_outline`, `plate_labels_1`..`5`,
+  `MakerWorld_Customizer_Environment`, 5 plates, both-axes packing).
