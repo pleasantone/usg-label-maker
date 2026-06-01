@@ -25,16 +25,15 @@
 MakerWorld_Customizer_Environment = true;
 
 // The labels to print, delimited by "|"
-plate_labels_1 = "METRIC SOCKETS|SAE SOCKETS|SPECIALTY SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING";
+plate_labels_1 = "METRIC SOCKETS|SAE SOCKETS|SPECIALTY SOCKETS|RATCHETS|SCREWDRIVERS|WRENCHES|TORQUE WRENCHES|PLIERS|BIT SETS|POWER TOOLS|ELECTRICAL|CHISELS|PICKS|TORX|ALLEN|JUNK|RIVETING|SHEARS|MEASURING|MISC|PPE|MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING|HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS|AUTOMOTIVE TOOLS|OILS|PAINT|BRAKE TOOLS|HAMMERS|SAE WRENCHES|METRIC WRENCHES|VISE GRIPS|AIR TOOLS|POWER TOOLS|SNACKS|ELECTRICAL TOOLS|ELECTRICAL DIAGNOSTICS|ALLEN|TORX|HARDWARE|EXTENSIONS|BREAKER BARS|HEX KEYS|SAE|METRIC||SOCKETS|ELECTRICAL|NO TOUCH|BITS|IMPACT WRENCHES|1/4\" RATCHETS|3/8\" RATCHETS|1/2\" RATCHETS";
 
 // Multiple plate support only works on MakerWorld
-plate_labels_2 = "SHEARS|MEASURING|MISC|PPE|MOTORCYCLE|MARKING|MAGNETS|PRY BARS|BRUSHES|CRIMPERS|SOLDERING|HAMMERS|LIGHTS|ZIP TIES|TAPE|DRILL BITS|ADHESIVES|SEALANTS";
-plate_labels_3 = "AUTOMOTIVE TOOLS|OILS|PAINT|BRAKE TOOLS|HAMMERS|SAE WRENCHES|METRIC WRENCHES|VISE GRIPS|AIR TOOLS|POWER TOOLS|SNACKS|ELECTRICAL TOOLS|ELECTRICAL DIAGNOSTICS|ALLEN|TORX|HARDWARE";
-plate_labels_4 = "EXTENSIONS|BREAKER BARS|HEX KEYS|SAE|METRIC|SOCKETS|ELECTRICAL|NO TOUCH|BITS|IMPACT WRENCHES|1/4\" RATCHETS|3/8\" RATCHETS|1/2\" RATCHETS|I WASN'T ASKING TOOL";
-plate_labels_5 = "DON'T TOUCH MY TOOLS";
+plate_labels_2 = "PLATE TWO ITEMS";
+plate_labels_3 = "I WASN'T ASKING TOOL";
+plate_labels_4 = "DON'T TOUCH MY TOOLS";
+plate_labels_5 = "PLATE 5 ITEMS";
 
-plate_labels = str(plate_labels_1, "|", plate_labels_2, "|", plate_labels_3, "|", plate_labels_4, "|", plate_labels_5);
-
+/* [Fonts] */
 /* A note on fonts:
 
    If you are intending to match the US General font, it is non-standard
@@ -68,9 +67,14 @@ plate_labels = str(plate_labels_1, "|", plate_labels_2, "|", plate_labels_3, "|"
 // Backup local options:
 //   "FONTSPRING DEMO \\- Avionic Wide Oblique Black" -- closest USG match (demo license)
 //   "Concielian:style=Bold Semi Italic"
-font = MakerWorld_Customizer_Environment
-    ? "Montserrat:style=ExtraBold Italic"
-    : "sd prostreet"; //font
+
+// font used with makerworld customizer
+makerworld_font = "Montserrat:style=ExtraBold Italic"; //font
+
+// font used when running local OpenSCAD
+local_font = "sd prostreet";
+
+font = MakerWorld_Customizer_Environment ? makerworld_font : local_font;
 
 // Font size in points
 font_size = 8; // [5:32]
@@ -124,19 +128,18 @@ bed_size=[255, 255];
 // Wall width in mm of the preview-only plate-edge border (never exported)
 border_thickness = 3;
 
-/* [Exclusion zones] */
 // Skip rectangular keep-out areas when arranging labels (each anchored to a bed
 // corner). Sizes are [width, height] in mm.
 
 // Zone 1 default: Bambu X1C front-left cutter / nozzle-wipe area (tune to taste)
 exclude_zone_1 = true;
 exclude_zone_1_corner = "left-bottom"; // [left-bottom, right-bottom, left-top, right-top]
-exclude_zone_1_size = [18, 18];
+exclude_zone_1_size = [18, 28];
 
 // Zone 2 default: space reserved for a prime / purge tower
 exclude_zone_2 = true;
 exclude_zone_2_corner = "right-top"; // [left-bottom, right-bottom, left-top, right-top]
-exclude_zone_2_size = [100, 100];
+exclude_zone_2_size = [55, 55];
 
 /* [Advanced] */
 // Extra padding for magnet cut on Z axis
@@ -206,11 +209,11 @@ module mw_make_labels(labels) {
 
 if (!MakerWorld_Customizer_Environment) {
     color(base_color)
-        iterate_labels(plate_labels)
+        iterate_labels(plate_labels_1)
             make_base(); // all the bases will export as a single object
 
     color(text_color)
-         iterate_labels(plate_labels)
+         iterate_labels(plate_labels_1)
             make_text(); // all the text will export as a single object
 }
 
@@ -450,17 +453,17 @@ module make_text(string = $string) {
                  halign = "center", valign = "center");
 }
 
-// Square ring hugging the bed edges, centered on the origin like the labels.
-// Preview-only reference (see the $preview guard at top level) -- excluded from
-// exports, so it carries no magnet pockets and matches the base height only as a
-// visual cue.
+// Square ring just outside the bed edges, centered on the origin like the
+// labels, so it frames the bed without consuming any printable area. Preview-only
+// reference (see the $preview guard at top level) -- excluded from exports, so it
+// carries no magnet pockets and matches the base height only as a visual cue.
 module plate_border() {
-    color(base_color)
+    color([0.85, 0.12, 0.12, 0.35])
         linear_extrude(base_depth, center = false)
             difference() {
+                square([bed_size.x + 2 * border_thickness,
+                        bed_size.y + 2 * border_thickness], center = true);
                 square(bed_size, center = true);
-                square([bed_size.x - 2 * border_thickness,
-                        bed_size.y - 2 * border_thickness], center = true);
             }
 }
 
@@ -489,3 +492,9 @@ function split(h, s, p=[]) = let(x = search(h, s))
     ? concat(p, s)
     : let(i=x[0], l=substr(s, 0, i), r=substr(s, i+1, len(s)))
         split(h, r, concat(p, l));
+
+// join(["METRIC","SAE","TORX"], "|") => "METRIC|SAE|TORX"
+function join(list, sep = "", i = 0) =
+    len(list) == 0 ? "" :
+    i == len(list) - 1 ? str(list[i])
+                       : str(list[i], sep, join(list, sep, i + 1));

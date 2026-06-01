@@ -64,7 +64,7 @@ Both paths must funnel through `iterate_labels` → `make_base` / `make_text` so
 
 ### Preview-only plate border
 
-`plate_border()` draws a square ring at the bed edges (`bed_size`, wall width `border_thickness`) and `plate_exclusions()` overlays the `exclusion_zones` as translucent red slabs — both visual guides. They're gated by a single `if ($preview)` block at top level: `$preview` is true only for on-screen preview (F5/GUI) and false during full render and every export (F6, CLI `-o`, MakerWorld), so neither **ever** enters an STL/3MF. Use the same `$preview` guard for any future reference-only geometry — don't rely on the `%` modifier, which lazy-union can still surface as a stray object part.
+`plate_border()` draws a square ring just outside the bed edges (inner edge at `bed_size`, extending `border_thickness` beyond on each side, so it frames the bed without consuming printable area) and `plate_exclusions()` overlays the `exclusion_zones` as translucent red slabs — both visual guides. They're gated by a single `if ($preview)` block at top level: `$preview` is true only for on-screen preview (F5/GUI) and false during full render and every export (F6, CLI `-o`, MakerWorld), so neither **ever** enters an STL/3MF. Use the same `$preview` guard for any future reference-only geometry — don't rely on the `%` modifier, which lazy-union can still surface as a stray object part.
 
 ## Fonts
 
