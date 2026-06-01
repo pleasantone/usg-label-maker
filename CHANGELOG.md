@@ -1,10 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file. From v1.0.0
+onward it is maintained automatically by
+[release-please](https://github.com/googleapis/release-please) from
+[Conventional Commits](https://www.conventionalcommits.org/); newer releases are
+prepended above the 1.0.0 entry.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-## [Unreleased] — 2026-05-31
+## [1.0.0](https://github.com/pleasantone/usg-label-maker/releases/tag/v1.0.0) (2026-05-31)
 
 Complete rewrite of the original single-label remix into a batch/customizer
 generator. Summary of the current behavior:

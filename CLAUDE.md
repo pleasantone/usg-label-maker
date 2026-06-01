@@ -24,6 +24,15 @@ Toggle: `MakerWorld_Customizer_Environment` at the top of the `.scad` file. `fon
 
 `batchmake.sh` hard-codes the macOS path `/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD` and passes `-D` overrides. New parameter presets go in its `case $PARAMETERS` block.
 
+## Releases
+
+Versioning is automated by [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release-please.yml`, `release-please-config.json`, `.release-please-manifest.json`), `release-type: simple`. **Commit messages on `main` must be [Conventional Commits](https://www.conventionalcommits.org/)** — that's what drives the version bump and changelog:
+
+- `fix:` → patch (x.y.**Z**), `feat:` → minor (x.**Y**.0), `feat!:` / `BREAKING CHANGE:` footer → major (**X**.0.0).
+- `docs:`, `chore:`, `refactor:`, `test:`, etc. land but don't trigger a release on their own.
+
+On each push to `main`, the action opens/updates a **release PR**. Merging it bumps `version.txt`, rewrites the `x-release-please-version` stamp line near the top of `MagneticLabelMaker.scad`, prepends a `CHANGELOG.md` section, and tags `vX.Y.Z`. The 1.0.0 entry is the hand-written bootstrap; everything above it is generated. Don't hand-edit `version.txt`, the stamp line, or `.release-please-manifest.json`.
+
 ## Architecture
 
 ### Rendering pipeline

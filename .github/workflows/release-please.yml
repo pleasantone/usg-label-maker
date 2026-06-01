@@ -1,0 +1,22 @@
+name: release-please
+
+# Opens/updates a release PR as Conventional Commits land on main, and cuts a
+# tagged GitHub release (bumping version.txt + the version stamp in the .scad,
+# and updating CHANGELOG.md) when that PR is merged.
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

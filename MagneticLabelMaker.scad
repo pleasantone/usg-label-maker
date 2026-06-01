@@ -21,6 +21,8 @@
   color information.
 */
 
+// usg-label-maker release 1.0.0  (x-release-please-version -- auto-updated; do not edit by hand)
+
 // Are we running on MakerWorld or a local instance of OpenSCAD?
 MakerWorld_Customizer_Environment = true;
 
