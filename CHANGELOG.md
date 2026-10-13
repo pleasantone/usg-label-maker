@@ -6,6 +6,18 @@ onward it is maintained automatically by
 [Conventional Commits](https://www.conventionalcommits.org/); newer releases are
 prepended above the 1.0.0 entry.
 
+## [1.1.0](https://github.com/pleasantone/usg-label-maker/compare/v1.0.0...v1.1.0) (2026-10-13)
+
+
+### Features
+
+* add inlay and deboss text styles, optional face-down printing and elephant's foot compensation ([1774206](https://github.com/pleasantone/usg-label-maker/commit/1774206a5e5c3373d112d2c750fe58ff7d0f57a3))
+
+
+### Bug Fixes
+
+* stop the base silently growing 1 mm and burying the text ([892e723](https://github.com/pleasantone/usg-label-maker/commit/892e72303fc7ab4981f95a2046d0142a781900d4))
+
 ## [1.0.0](https://github.com/pleasantone/usg-label-maker/releases/tag/v1.0.0) (2026-05-31)
 
 Complete rewrite of the original single-label remix into a batch/customizer
