@@ -41,7 +41,7 @@ On each push to `main`, the action opens/updates a **release PR**. Merging it bu
 
 1. Splits the `|`-delimited string, filters empty entries.
 2. Calls `textmetrics()` **once per label** and caches results.
-3. Computes each label's **full footprint** — text box grown by `2 * base_radius` per axis (the minkowski adds `base_radius` on every side) — plus a `label_gap` safety margin so neighbouring bases never fuse.
+3. Computes each label's **full footprint** — text box grown by `2 * base_radius` per axis (`base_footprint()` rounds by `base_radius` on every side) — plus a `label_gap` safety margin so neighbouring bases never fuse.
 4. Uniform row height (slot) = tallest footprint + `label_gap`.
 5. Lays a **centered grid of `floor(bed_y / slot)` row-bands** and carves each band into free X-intervals ("shelves") by subtracting any exclusion zone (inflated by `label_gap`) that intrudes on that band's Y range. A shelf is `[x_min, x_max, y_center]`.
 6. Sorts labels widest-first and packs them into shelves via **first-fit-decreasing** (`pack_shelves()` / `fit_shelf()`). Each shelf's run of labels is centered within its free interval.
@@ -52,13 +52,13 @@ Exclusion zones are corner-anchored rectangles built by `corner_rect()` from the
 
 `make_base()` and `make_text()` consume `$string` / `$tmetrics` — never re-measure. If you add another per-label module, follow the same pattern. Both modules also accept the values as defaulted args so they remain callable standalone for debugging.
 
-`make_base()` builds the rounded base via `hull() { minkowski() { extrude(square or text); cylinder(r=base_radius); } }`, then subtracts magnet pockets via `place_magnet_holes()`. The minkowski adds `base_radius` on **every** side — the X-axis assertion correctly uses `base_width + 2 * base_radius`.
+`make_base()` extrudes the 2D `base_footprint()` — `offset(r=base_radius) hull() { square or text }` — then subtracts magnet pockets via `place_magnet_holes()`. The offset adds `base_radius` on **every** side — the X-axis assertion correctly uses `base_width + 2 * base_radius`. Keep the rounding in 2D: the old `minkowski` with a `cylinder(h=1)` silently added 1 mm to the base height and buried the text.
 
 `place_magnet_holes(base_width)` decides between two end holes (+ optional third center hole on wide labels) vs. a single center hole, based on actual edge-to-edge gap.
 
 ### Magnet geometry
 
-`base_depth` is derived from magnet geometry (`magnet_hole_top + 2 * magnet_depth_clearance`). Raised text height = `depth - base_depth` and must be positive — `make_text` asserts this.
+`base_depth` is derived from magnet geometry (`magnet_hole_top + 2 * magnet_depth_clearance + magnet_cap_thickness`). Raised text height = `depth - base_depth` and must be positive — `make_text` asserts this.
 
 `encapsulate_magnets = false` (default): pocket open at the base, magnets drop in. `cut_magnet` is intentionally wider at the bottom so the magnet seats firmly against the cap — don't flip the cone.
 

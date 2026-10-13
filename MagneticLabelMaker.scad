@@ -150,6 +150,8 @@ magnet_depth_clearance = 0.1;
 magnet_topcyl_clearance = 0.1;
 // Extra padding for magnet at bottom of cut
 magnet_bottomcyl_clearance = 0.2;
+// Solid material in mm between the closed end of the magnet pocket and the base surface
+magnet_cap_thickness = 1;
 
 // lower Z bounds of magnet cut
 magnet_depth_offset = encapsulate_magnets ? magnet_depth_clearance * 2 : 0;
@@ -163,7 +165,7 @@ label_gap = 1;
 
 /* [ Hidden ] */
 
-base_depth = magnet_hole_top + (magnet_depth_clearance*2);
+base_depth = magnet_hole_top + (magnet_depth_clearance*2) + magnet_cap_thickness;
 
 // Active exclusion zones as rectangles [x_min, y_min, x_max, y_max] in the same
 // bed-centered coordinate system the labels are placed in.
@@ -248,7 +250,7 @@ module iterate_labels(labels) {
                             halign = "center", valign = "center")
         ];
 
-        // minkowski adds base_radius on every side, so the real footprint is the
+        // base_footprint adds base_radius on every side, so the real footprint is the
         // text box grown by 2*base_radius in each axis; label_gap then keeps
         // neighbouring bases from fusing on the plate.
         // floor both axes at magnet_wrap_diameter so a narrow label's base can
@@ -397,26 +399,30 @@ module make_base(string = $string, tmetrics = $tmetrics) {
     base_width  = max(tmetrics["size"][0], magnet_wrap_diameter);
     base_height = max(tmetrics["size"][1], magnet_wrap_diameter);
 
-    // minkowski with a cylinder of base_radius adds base_radius on every side,
-    // so the actual base extends base_width + 2*base_radius on X.
+    // base_footprint rounds by base_radius on every side, so the actual base
+    // extends base_width + 2*base_radius on X.
     assert(base_width + 2 * base_radius < bed_size.x,
            str("ERROR: Not enough X-axis plate space to print ", string,
                " -- decrease label length or font size"));
 
     difference() {
-        hull() // wrap all letter glyphs into a single envelope
-            minkowski() { // chamfer corners (and flow letters when base_outline)
-                linear_extrude(base_depth, center = false) {
-                    if (base_outline)
-                        text(string, size = font_size, font = font,
-                             halign = "center", valign = "center");
-                    else
-                        square([base_width, base_height], center = true);
-                }
-                cylinder(h = 1, r = base_radius);
-            }
+        linear_extrude(base_depth, center = false)
+            base_footprint(string, base_width, base_height);
         place_magnet_holes(base_width);
     }
+}
+
+// 2D outline of a label's base: the text box (or the hull of the glyphs when
+// base_outline) rounded by base_radius on every side.
+module base_footprint(string, base_width, base_height) {
+    offset(r = base_radius)
+        hull() {
+            if (base_outline)
+                text(string, size = font_size, font = font,
+                     halign = "center", valign = "center");
+            else
+                square([base_width, base_height], center = true);
+        }
 }
 
 // Drills magnet pockets out of the base. Two end holes when there's room for
