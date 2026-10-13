@@ -20,6 +20,8 @@ usage() {
     cat >&2 <<EOF
 Usage: $0 [-p|--parameters MODE] <filename>
   MODE: loadout (smaller magnets, outputs to ./loadout/)
+        inlay | deboss (flush or recessed text, printed face up)
+        inlay-down | deboss-down (same, printed face down)
   Input <filename> contains one badge per line. Blank lines and '#' comments are skipped.
   Override OpenSCAD path with the OPENSCAD environment variable.
 EOF
@@ -56,6 +58,12 @@ case "$PARAMETERS" in
         ;;
     avionic)
         FONT="$AVIONIC_FONT"
+        ;;
+    inlay|deboss)
+        EXTRA="-D text_style=\"$PARAMETERS\""
+        ;;
+    inlay-down|deboss-down)
+        EXTRA="-D text_style=\"${PARAMETERS%-down}\" -D print_face_down=true"
         ;;
     "")
         ;;

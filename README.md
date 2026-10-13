@@ -101,6 +101,27 @@ See the .scad file for parameters you can change, but briefly:
         May produce more aesthetic results but can also look
         strange letters with descenders (angled base) and trailing Ls
         (opposite angle). Slower to render but could be very cool.
+- *text_style*:
+     raised: default, letters stand on top of the base.
+     inlay:  letters are a separate color, flush with the face.
+     deboss: letters are recessed into the face (single color).
+- *print_face_down*: false default. inlay/deboss only (raised is an error):
+  prints with the face on the bed so it takes the bed's texture; the text is
+  mirrored on the bed and the magnet pockets open on the back (top). Don't
+  flip the part in the slicer. Face up, a flush inlay top looks best with
+  the slicer's ironing turned on.
+
+  ![All valid text_style / print_face_down combinations](samples/text-styles.png)
+
+  *White text on a dark base; deboss has no text part, so it's shown on a
+  light grey base. The face-down rows show the label as printed (back up,
+  magnet pockets on top) and the finished face.*
+- *text_depth*: 0.6mm default, how far inlay/deboss text goes into the face
+- *elephant_foot*: 0mm default (off). Insets the first layer's outer edge (and
+  widens debossed letters on the first layer) to counter first-layer squish.
+  Most slicers already compensate, so only set this (try 0.15mm) if yours
+  doesn't, or with the slicer's compensation turned off.
+- *first_layer_height*: 0.2mm default, match your slicer's first layer
 
 ### Layout, exclusion zones, and the preview border
 

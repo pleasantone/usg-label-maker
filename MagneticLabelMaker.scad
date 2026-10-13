@@ -99,6 +99,26 @@ text_color = "#FFFFFF"; // color
 // Should the base follow an outline of the letters? (see notes!)
 base_outline = 0; // [0: Standard base, 1: Follow letter shapes]
 
+/*
+   raised: text stands on top of the base; printed face up.
+   inlay:  text is a separate color, flush with the face.
+   deboss: text is recessed into the face, no separate text part.
+   inlay and deboss can print face up or face down (see print_face_down).
+*/
+text_style = "raised"; // [raised, inlay, deboss]
+
+// Print with the label face on the bed (inlay/deboss only): bed-textured face, mirrored text, magnet pockets open on top
+print_face_down = false;
+
+// How far inlay/deboss text goes into the face in mm (use a whole number of layers, 3 or more)
+text_depth = 0.6;
+
+// Elephant's foot compensation in mm: insets the first layer's outer edge (and widens debossed text). Off by default since most slicers already compensate; try 0.15 if yours doesn't
+elephant_foot = 0;
+
+// First layer height in mm (the layer elephant_foot applies to)
+first_layer_height = 0.2;
+
 // Rounded corner radius in mm
 base_radius = 2;
 
@@ -111,7 +131,7 @@ magnet_diameter = 8;
 // Depth of the magnet hole in mm
 magnet_depth = 3;
 
-// Fully encapsulated magnets or open at the base. If encapsulate, pause the print at the top of the hole to insert magnets
+// Fully encapsulated magnets or open at the back. If encapsulate, pause the print at the top of the hole to insert magnets
 encapsulate_magnets = false;
 
 // place magnet holes in mm from inside edge
@@ -167,6 +187,21 @@ label_gap = 1;
 
 base_depth = magnet_hole_top + (magnet_depth_clearance*2) + magnet_cap_thickness;
 
+// inlay/deboss bases are solid for the full depth, with the text cut into the face
+text_in_face = text_style != "raised";
+
+assert(text_style == "raised" || text_style == "inlay" || text_style == "deboss",
+       str("ERROR: unknown text_style \"", text_style, "\""));
+assert(!print_face_down || text_in_face,
+       "ERROR: print_face_down needs text_style inlay or deboss -- raised text can't print face down");
+assert(!print_face_down || text_depth > first_layer_height,
+       str("ERROR: text_depth (", text_depth, "mm) must exceed first_layer_height (",
+           first_layer_height, "mm)"));
+assert(!text_in_face || depth - magnet_hole_top >= text_depth + magnet_cap_thickness,
+       str("ERROR: depth (", depth, "mm) leaves less than magnet_cap_thickness (",
+           magnet_cap_thickness, "mm) between the magnet pockets and the ", text_style,
+           " text. Increase depth or reduce magnet_depth / text_depth."));
+
 // Active exclusion zones as rectangles [x_min, y_min, x_max, y_max] in the same
 // bed-centered coordinate system the labels are placed in.
 exclusion_zones = concat(
@@ -195,7 +230,8 @@ module mw_plate_5(labels=plate_labels_5) mw_make_labels(labels);
 
 module mw_make_labels(labels) {
     color(base_color) iterate_labels(labels) make_base();
-    color(text_color) iterate_labels(labels) make_text();
+    if (text_style != "deboss")
+        color(text_color) iterate_labels(labels) make_text();
 }
 
 /* Local OpenSCAD:
@@ -216,9 +252,10 @@ if (!MakerWorld_Customizer_Environment) {
         iterate_labels(plate_labels_1)
             make_base(); // all the bases will export as a single object
 
-    color(text_color)
-         iterate_labels(plate_labels_1)
-            make_text(); // all the text will export as a single object
+    if (text_style != "deboss") // deboss has no separate text part
+        color(text_color)
+            iterate_labels(plate_labels_1)
+                make_text(); // all the text will export as a single object
 }
 
 // Reference frame around the bed edges plus the exclusion-zone overlays.
@@ -406,10 +443,58 @@ module make_base(string = $string, tmetrics = $tmetrics) {
                " -- decrease label length or font size"));
 
     difference() {
-        linear_extrude(base_depth, center = false)
+        // the bed-side outer edge is inset against elephant's foot
+        first_layer_extrude(text_in_face ? depth : base_depth, -elephant_foot)
             base_footprint(string, base_width, base_height);
         place_magnet_holes(base_width);
+        if (text_style == "deboss" && print_face_down)
+            // a hole squishes inward on the first layer, so widen it there
+            // (starting 0.01 below the bed to punch cleanly through the face)
+            first_layer_extrude(text_depth, elephant_foot, below = 0.01)
+                label_text(string);
+        else if (text_in_face)
+            // inlay needs no compensation: the text part fills this, and the two
+            // parts' squish at their shared edge cancels
+            face_text(string, over = 0.01);
     }
+}
+
+// The text_depth-thick slab of text at the label face (z=0 face down, the top
+// face up), extended `over` mm out past the face so a cut punches cleanly through.
+module face_text(string, over = 0) {
+    if (print_face_down)
+        translate([0, 0, -over])
+            linear_extrude(text_depth + over) label_text(string);
+    else
+        translate([0, 0, depth - text_depth])
+            linear_extrude(text_depth + over) label_text(string);
+}
+
+// The label's 2D text, mirrored when printing face down so it reads correctly
+// from the face side.
+module label_text(string) {
+    if (print_face_down)
+        mirror([1, 0, 0])
+            text(string, size = font_size, font = font,
+                 halign = "center", valign = "center");
+    else
+        text(string, size = font_size, font = font,
+             halign = "center", valign = "center");
+}
+
+// linear_extrude from z = -below up to h with the first layer (up to
+// first_layer_height) offset by delta (negative insets, positive grows) to
+// counter elephant's foot on the bed-side layer.
+module first_layer_extrude(h, delta, below = 0) {
+    translate([0, 0, -below])
+        if (delta == 0) {
+            linear_extrude(h + below) children();
+        } else {
+            flh = min(first_layer_height, h) + below;
+            linear_extrude(flh) offset(delta = delta) children();
+            if (h + below > flh)
+                translate([0, 0, flh]) linear_extrude(h + below - flh) children();
+        }
 }
 
 // 2D outline of a label's base: the text box (or the hull of the glyphs when
@@ -418,8 +503,7 @@ module base_footprint(string, base_width, base_height) {
     offset(r = base_radius)
         hull() {
             if (base_outline)
-                text(string, size = font_size, font = font,
-                     halign = "center", valign = "center");
+                label_text(string);
             else
                 square([base_width, base_height], center = true);
         }
@@ -434,20 +518,31 @@ module place_magnet_holes(base_width) {
     magnet_gap = base_width - 2 * magnet_edge_inboard - 2 * magnet_outer_radius;
 
     if (magnet_gap > magnet_minimum_separation) {
-        translate([-base_width / 2 + magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
-        translate([ base_width / 2 - magnet_edge_inboard, 0, magnet_depth_offset]) cut_magnet();
+        magnet_at(-base_width / 2 + magnet_edge_inboard);
+        magnet_at( base_width / 2 - magnet_edge_inboard);
         if (base_width > magnet_center_hole_width &&
             magnet_gap > magnet_minimum_separation * 4) {
-            translate([0, 0, magnet_depth_offset]) cut_magnet();
+            magnet_at(0);
         }
     } else {
-        translate([0, 0, magnet_depth_offset]) cut_magnet();
+        magnet_at(0);
     }
+}
+
+// One magnet pocket at x, opening on the back of the label: the bottom when
+// printed face up, the top when printed face down. Face down the whole cut is
+// mirrored in Z so its wide end still sits at the opening.
+module magnet_at(x) {
+    if (print_face_down)
+        translate([x, 0, depth - magnet_depth_offset]) mirror([0, 0, 1]) cut_magnet();
+    else
+        translate([x, 0, magnet_depth_offset]) cut_magnet();
 }
 
 // Slightly tapered cylinder: wider at the bottom (bottomcyl_clearance) than the
 // top (topcyl_clearance) so a magnet dropped in from the open base seats firmly
-// against the cap. Do not "fix" by swapping — direction is intentional.
+// against the cap. Do not "fix" by swapping — direction is intentional (face-down
+// labels mirror the whole cut in magnet_at rather than touching this).
 module cut_magnet() {
     cylinder(h = magnet_hole_bore,
              r1 = magnet_diameter / 2 + magnet_bottomcyl_clearance,
@@ -456,16 +551,20 @@ module cut_magnet() {
              $fn = 64);
 }
 
-// Make the text part of an object -- will position on top of base.
+// Make the text part of an object: on top of the base when raised, or filling
+// the pocket make_base cut into the face for inlay. deboss has no text part.
 module make_text(string = $string) {
-    assert(depth > base_depth,
-           str("ERROR: depth (", depth, "mm) must exceed base_depth (",
-               base_depth, "mm) so raised text has positive height. ",
-               "Increase depth or reduce magnet_depth."));
-    translate([0, 0, base_depth])
-        linear_extrude(depth - base_depth, center = false)
-            text(string, size = font_size, font = font,
-                 halign = "center", valign = "center");
+    if (text_style == "raised") {
+        assert(depth > base_depth,
+               str("ERROR: depth (", depth, "mm) must exceed base_depth (",
+                   base_depth, "mm) so raised text has positive height. ",
+                   "Increase depth or reduce magnet_depth."));
+        translate([0, 0, base_depth])
+            linear_extrude(depth - base_depth, center = false)
+                label_text(string);
+    } else if (text_style == "inlay") {
+        face_text(string);
+    }
 }
 
 // Square ring just outside the bed edges, centered on the origin like the

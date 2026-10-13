@@ -20,6 +20,7 @@ Toggle: `MakerWorld_Customizer_Environment` at the top of the `.scad` file. `fon
 ```bash
 ./batchmake.sh badges.txt                # default font
 ./batchmake.sh -p loadout badges.txt     # smaller magnets + sd prostreet font, outputs into ./loadout/
+./batchmake.sh -p inlay badges.txt       # flush two-color text, face up (also: deboss, inlay-down, deboss-down)
 ```
 
 `batchmake.sh` hard-codes the macOS path `/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD` and passes `-D` overrides. New parameter presets go in its `case $PARAMETERS` block.
@@ -60,9 +61,22 @@ Exclusion zones are corner-anchored rectangles built by `corner_rect()` from the
 
 `base_depth` is derived from magnet geometry (`magnet_hole_top + 2 * magnet_depth_clearance + magnet_cap_thickness`). Raised text height = `depth - base_depth` and must be positive — `make_text` asserts this.
 
-`encapsulate_magnets = false` (default): pocket open at the base, magnets drop in. `cut_magnet` is intentionally wider at the bottom so the magnet seats firmly against the cap — don't flip the cone.
+`encapsulate_magnets = false` (default): pocket open at the back, magnets drop in. `cut_magnet` is intentionally wider at the opening so the magnet seats firmly against the cap — don't flip the cone. Face-down labels mirror the whole cut in Z in `magnet_at()` instead.
 
-`encapsulate_magnets = true`: pocket offset by `magnet_depth_offset` so a thin layer bridges underneath; the print must be paused at the top of the hole to insert magnets.
+### Text styles and face-down printing
+
+`text_style` and `print_face_down` are independent, except that face down requires `inlay` or `deboss` (raised text would leave the base unsupported — a top-level assert stops it).
+
+- `text_style` picks `raised` (text on top of a `base_depth` base), `inlay` (text part flush with the face) or `deboss` (text recessed, no text part — both render paths skip the text pass). `text_in_face = text_style != "raised"`: the base is the full `depth` and `face_text()` gives the `text_depth` slab at the face, used both as the base's cut and as the inlay text part.
+- `print_face_down` puts the face at z=0 instead of the top: `face_text()` moves to the bottom, `label_text()` mirrors the glyphs in X (so does the `base_outline` hull), and `magnet_at()` puts the pockets on top.
+
+`samples/text-styles.png` (referenced from the README) shows every valid combination; regenerate it if the geometry of a style changes.
+
+Top-level asserts guard `text_depth > first_layer_height` (face down) and `magnet_cap_thickness` of solid between the pockets and the text (either orientation). Packing is unaffected (mirroring doesn't change the footprint).
+
+`first_layer_extrude(h, delta, below)` handles elephant's foot: the first `first_layer_height` is offset by `delta`. The base's outer edge uses `-elephant_foot` (in all styles, since the base's bottom is always on the bed); the face-down deboss cut uses `+elephant_foot` (holes squish inward; face up the recess is nowhere near the bed). The inlay cut is uncompensated: both parts squish into their shared edge and cancel.
+
+`encapsulate_magnets = true`: pocket offset by `magnet_depth_offset` so a thin layer covers the opening (bridged underneath face up, bridged over the top face down); the print must be paused at the top of the hole to insert magnets.
 
 ### Two execution paths
 
